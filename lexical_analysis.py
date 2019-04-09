@@ -30,7 +30,7 @@ class Input():
 Keydict = {a[1]:a[0] for a in enumerate(["do","if","else","int","boolean","float","while"],start = 5)}
 booldict = {"true":1,"false":0}#存储属性值不是种别码
 Optiondict = {a[1]:a[0] for a in enumerate(["+","-","*","/","**","++",">","<",">=","<=","==","!=","&&","||","!"],start = 5+len(Keydict))}
-Boundarydict = {a[1]:a[0] for a in enumerate(["(",")","{","}","[","]",";",",","="],start = 5+len(Keydict)+len(Optiondict))}
+Boundarydict = {a[1]:a[0] for a in enumerate(["(",")","{","}","[","]",";","="],start = 5+len(Keydict)+len(Optiondict))}
 class SymbolItem(namedtuple("SymbolItem","name type value")):
     pass
 class SymbolTable():
