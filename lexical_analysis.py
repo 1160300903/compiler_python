@@ -8,6 +8,8 @@ class Input():
         if self.i>=len(self.source):
             exit(0)
         self.i += 1
+        if(move_begin):
+            self.begin += 1#此时读入一个废字符，i和begin都加一
         return self.source[self.i-1]
     def move_begin(self):
         self.begin += 1
@@ -172,9 +174,9 @@ def token_scan(input):
 if __name__ == "__main__":
     with open("属性表.txt","w") as typeFile:
         typeFile.write("字符串\t种别码\t属性值\n")
-        typeFile.write("标识符\t1\t不定\n")  
-        typeFile.write("整数\t2\t不定\n") 
-        typeFile.write("浮点数\t3\t不定\n") 
+        typeFile.write("标识符\t1\t符号表地址\n")  
+        typeFile.write("整数\t2\t整数数值\n") 
+        typeFile.write("浮点数\t3\t浮点数值\n") 
         typeFile.write("true\t4\t1\n") 
         typeFile.write("false\t4\t0\n") 
         for key in Keydict:
