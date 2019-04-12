@@ -13,7 +13,7 @@ class Input():
 
     def get_char(self,move_begin = False):
         if self.i>=len(self.source):
-            exit(0)
+            return ""
         self.i += 1
         if self.source[self.i-1]=="\n":
             self.row += 1
@@ -51,13 +51,17 @@ class SymbolTable():
     def __init__(self):
         self.table = []
     def add(self, token):
-        self.table.append(SymbolItem(token,None,None))#名字，属性，值
+        self.table.append(SymbolItem(token,None,None))#名字，属性，offset
         return len(self.table)-1
     def search(self, token):
         for i in range(len(self.table)):
             if self.table[i].name == token:
                 return i
         return -1
+    def showTable(self):
+        print("符号表")
+        for i in range(len(self.table)):
+            print("标识符:%s\t类型:%s\t偏移值:%s"%self.table[i])
 si = SymbolTable()
 
 def token_scan(input):
@@ -90,7 +94,7 @@ def token_scan(input):
             if not char.isdigit():
                 print("error: %drow,%dcolumn,%s"%(input.row,input.column,"小数点后有错误"))
                 input.retract()
-                return None
+                return (None,None,None)
             while char.isdigit():
                 char = input.get_char()
         if char =="e":
@@ -101,11 +105,11 @@ def token_scan(input):
                 if not char.isdigit():
                     print("error: %drow,%dcolumn,%s"%(input.row,input.column,"科学计数法有错误"))
                     input.retract()
-                    return None
+                    return (None,None,None)
             elif not char.isdigit():
                 print("error: %drow,%dcolumn,%s"%(input.row,input.column,"科学计数法有错误"))
                 input.retract()
-                return None
+                return (None,None,None)
             while char.isdigit():
                 char = input.get_char()
         input.retract()
@@ -156,7 +160,7 @@ def token_scan(input):
         else:
             print("error: %drow,%dcolumn,%s"%(input.row,input.column,"缺少一个&"))
             input.retract()
-            return None
+            return (None,None,None)
     elif char == "|":
         char = input.get_char()
         if char == "|":
@@ -164,7 +168,7 @@ def token_scan(input):
         else:
             print("error: %drow,%dcolumn,%s"%(input.row,input.column,"缺少一个|"))
             input.retract()
-            return None
+            return (None,None,None)
     elif char == "+":
         char = input.get_char()
         if char == "+":
@@ -182,7 +186,7 @@ def token_scan(input):
                 while char == "*":
                     char = input.get_char()
                     if char == "/":#测试用例 **/
-                        return  None         
+                        return  (None,None,None)        
         else:
             return ("/", Optiondict["/"],0)
     elif char == "(":
@@ -201,8 +205,11 @@ def token_scan(input):
         return (";", Boundarydict[";"],0)
     elif char == ",":
         return (",", Boundarydict[","],0)
+    elif char == "":
+        return "",None,None
     else:
         print("error: %drow,%dcolumn,%s"%(input.row,input.column,"非法字符")) 
+        return None,None,None
 if __name__ == "__main__":
     with open("属性表.txt","w") as typeFile:
         typeFile.write("字符串\t种别码\t属性值\n")
@@ -226,4 +233,7 @@ if __name__ == "__main__":
         input.reset_begin()
         if token == None:
             continue
+        elif token == "":
+            break
         print(token + "\t\t" +"<"+str(type_code)+"\t, "+str(attribute)+" >")
+    si.showTable()  
