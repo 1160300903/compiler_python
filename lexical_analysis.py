@@ -4,10 +4,22 @@ class Input():
         self.i = 0
         self.begin = 0
         self.source = source
+        self.legal_char = set()
+        self.row = 1
+        self.column = 0
+        with open("alphabet.txt","r") as letter:
+            for a in letter.readline().split():
+                self.legal_char.add(a)
+
     def get_char(self,move_begin = False):
         if self.i>=len(self.source):
             exit(0)
         self.i += 1
+        if self.source[self.i-1]=="\n":
+            self.row += 1
+            self.column = 0
+        else:
+            self.column += 1
         if(move_begin):
             self.begin += 1#此时读入一个废字符，i和begin都加一
         return self.source[self.i-1]
@@ -29,10 +41,10 @@ class Input():
 #无符号整数 2
 #无符号浮点数 3
 #布尔常数 4
-Keydict = {a[1]:a[0] for a in enumerate(["do","if","else","int","boolean","float","while"],start = 5)}
+Keydict = {a[1]:a[0] for a in enumerate(["do","if","else","int","boolean","float","while","struct"],start = 5)}
 booldict = {"true":1,"false":0}#存储属性值不是种别码
 Optiondict = {a[1]:a[0] for a in enumerate(["+","-","*","/","**","++",">","<",">=","<=","==","!=","&&","||","!"],start = 5+len(Keydict))}
-Boundarydict = {a[1]:a[0] for a in enumerate(["(",")","{","}","[","]",";","="],start = 5+len(Keydict)+len(Optiondict))}
+Boundarydict = {a[1]:a[0] for a in enumerate(["(",")","{","}","[","]",";","=",","],start = 5+len(Keydict)+len(Optiondict))}
 class SymbolItem(namedtuple("SymbolItem","name type value")):
     pass
 class SymbolTable():
@@ -47,8 +59,7 @@ class SymbolTable():
                 return i
         return -1
 si = SymbolTable()
-def error_handle():
-    pass#TODO
+
 def token_scan(input):
     char = input.get_char()
     while char ==" " or char == "\t" or char == "\n":
@@ -76,6 +87,25 @@ def token_scan(input):
         if char == ".":
             char = input.get_char()
             isInt = False
+            if not char.isdigit():
+                print("error: %drow,%dcolumn,%s"%(input.row,input.column,"小数点后有错误"))
+                input.retract()
+                return None
+            while char.isdigit():
+                char = input.get_char()
+        if char =="e":
+            char = input.get_char()
+            isInt = False
+            if char =="+" or char =="-":
+                char = input.get_char()
+                if not char.isdigit():
+                    print("error: %drow,%dcolumn,%s"%(input.row,input.column,"科学计数法有错误"))
+                    input.retract()
+                    return None
+            elif not char.isdigit():
+                print("error: %drow,%dcolumn,%s"%(input.row,input.column,"科学计数法有错误"))
+                input.retract()
+                return None
             while char.isdigit():
                 char = input.get_char()
         input.retract()
@@ -124,14 +154,16 @@ def token_scan(input):
         if char == "&":
             return ("&&", Optiondict["&&"],0)
         else:
-            error_handle()
+            print("error: %drow,%dcolumn,%s"%(input.row,input.column,"缺少一个&"))
+            input.retract()
             return None
     elif char == "|":
         char = input.get_char()
         if char == "|":
             return ("||", Optiondict["||"],0)
         else:
-            error_handle()
+            print("error: %drow,%dcolumn,%s"%(input.row,input.column,"缺少一个|"))
+            input.retract()
             return None
     elif char == "+":
         char = input.get_char()
@@ -170,7 +202,7 @@ def token_scan(input):
     elif char == ",":
         return (",", Boundarydict[","],0)
     else:
-        error_handle()   
+        print("error: %drow,%dcolumn,%s"%(input.row,input.column,"非法字符")) 
 if __name__ == "__main__":
     with open("属性表.txt","w") as typeFile:
         typeFile.write("字符串\t种别码\t属性值\n")
@@ -192,8 +224,6 @@ if __name__ == "__main__":
     while(True):
         token, type_code,attribute = token_scan(input)
         input.reset_begin()
+        if token == None:
+            continue
         print(token + "\t\t" +"<"+str(type_code)+"\t, "+str(attribute)+" >")
-
-
-            
-        
