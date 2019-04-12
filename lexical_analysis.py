@@ -27,6 +27,8 @@ class Input():
         self.begin += 1
     def retract(self):
         self.i -= 1
+        if self.source[self.i]=="\n":
+            self.row -= 1
     def copy_token(self):
         result = self.source[self.begin:self.i]
         self.begin = self.i
@@ -45,7 +47,7 @@ Keydict = {a[1]:a[0] for a in enumerate(["do","if","else","int","boolean","float
 booldict = {"true":1,"false":0}#存储属性值不是种别码
 Optiondict = {a[1]:a[0] for a in enumerate(["+","-","*","/","**","++",">","<",">=","<=","==","!=","&&","||","!"],start = 5+len(Keydict))}
 Boundarydict = {a[1]:a[0] for a in enumerate(["(",")","{","}","[","]",";","=",","],start = 5+len(Keydict)+len(Optiondict))}
-class SymbolItem(namedtuple("SymbolItem","name type value")):
+class SymbolItem(namedtuple("SymbolItem","name type offset")):
     pass
 class SymbolTable():
     def __init__(self):
@@ -62,6 +64,9 @@ class SymbolTable():
         print("符号表")
         for i in range(len(self.table)):
             print("标识符:%s\t类型:%s\t偏移值:%s"%self.table[i])
+        with open("符号表.txt","w") as st:
+            for i in range(len(self.table)):
+                st.write("标识符:%s\t类型:%s\t偏移值:%s\n"%self.table[i])
 si = SymbolTable()
 
 def token_scan(input):
@@ -183,8 +188,14 @@ def token_scan(input):
         if char == "*":
             while True:
                 char = input.get_char()
+                if char == "":
+                    print("error: %drow,%dcolumn,%s"%(input.row,input.column,"注释不封闭")) 
+                    return "",None,None
                 while char == "*":
                     char = input.get_char()
+                    if char == "":
+                        print("error: %drow,%dcolumn,%s"%(input.row,input.column,"注释不封闭")) 
+                        return "",None,None
                     if char == "/":#测试用例 **/
                         return  (None,None,None)        
         else:
@@ -211,7 +222,7 @@ def token_scan(input):
         print("error: %drow,%dcolumn,%s"%(input.row,input.column,"非法字符")) 
         return None,None,None
 if __name__ == "__main__":
-    with open("属性表.txt","w") as typeFile:
+    with open("种别码表.txt","w") as typeFile:
         typeFile.write("字符串\t种别码\t属性值\n")
         typeFile.write("标识符\t1\t符号表地址\n")  
         typeFile.write("整数\t2\t整数数值\n") 
@@ -228,6 +239,7 @@ if __name__ == "__main__":
     file1 = open("test.txt","r")
     source = file1.read()
     input = Input(source)
+    file2 = open("token.txt","w")
     while(True):
         token, type_code,attribute = token_scan(input)
         input.reset_begin()
@@ -235,5 +247,7 @@ if __name__ == "__main__":
             continue
         elif token == "":
             break
-        print(token + "\t\t" +"<"+str(type_code)+"\t, "+str(attribute)+" >")
-    si.showTable()  
+        file2.write(token + "\t\t" +"<"+str(type_code)+"\t, "+str(attribute)+" >\n")
+    si.showTable()
+    file1.close()
+    file2.close()
