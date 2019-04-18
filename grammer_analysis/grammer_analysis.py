@@ -74,9 +74,10 @@ class grammer_parser():
                     assert line.split("#")[0] not in self.variable
                     self.variable.add(line.split("#")[0])
                 elif state == 3:
+                    if line=="":
+                        continue
                     temp_variable,right_side = line.split("::=")
                     for a in right_side.split():
-                        print(a)
                         assert a in self.terminators or a in self.variable or a == "ε"
                     assert temp_variable in self.variable
                     if right_side=="ε":
@@ -138,7 +139,7 @@ class grammer_parser():
             temp_set = set()
             for item in clourse_set:
                 if self.is_not_specified(item) and item.rightside[item.loc_of_point] in self.variable:
-                    all_char = self.first_set_for_string(item.rightside[item.loc_of_point+1:]+tuple(item.ex_symbol))
+                    all_char = self.first_set_for_string(item.rightside[item.loc_of_point+1:]+(item.ex_symbol,))
                     for e in self.expression:
                         if e.leftside == item.rightside[item.loc_of_point]:
                             for c in all_char:
@@ -198,8 +199,12 @@ class grammer_parser():
                 if item.loc_of_point == len(item.rightside):
                     index = self.find_expression(item)
                     if index==0 and item.ex_symbol == "#":
+                        assert "#" not in self.action[i]
                         self.action[i]["#"] = "acc"
                     else:
+                        print(i,item,self.action[i])
+                        print("r"+str(index))
+                        assert item.ex_symbol not in self.action[i] 
                         self.action[i][item.ex_symbol] = "r"+str(index)
     def parse(self,string,verbose):
         self.symbol_stack = Stack()
@@ -244,12 +249,13 @@ class grammer_parser():
                         print("goto\t\t")
             except KeyError as e:
                 print("错误")
-    def show_table(self):
+    def show_table(self,verbose):
         sorted_terminators = sorted(list(self.terminators))
         sorted_variable = sorted(list(self.variable))
         
         for i in range(len(self.all_clourse)):
-            print("clourse"+str(i))
+            if verbose:
+                print("clourse"+str(i))
             sorted_expression = sorted(list(self.all_clourse[i]))
             for item in sorted_expression:
                 temp_list = list(item.rightside)
@@ -272,4 +278,3 @@ class grammer_parser():
 if __name__ == "__main__":
     g = grammer_parser("grammar.txt")
     g.show_table()
-    g.parse("abab",True)

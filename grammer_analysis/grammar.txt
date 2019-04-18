@@ -7,9 +7,7 @@ Variable
 start#拓广文法
 P'#产生多个P
 P#开始符号
-DI#用于生成D
 D#定义语句
-SI#用于生成S
 S#赋值语句
 Param#参数定义
 T#类型信息
@@ -28,16 +26,12 @@ R#比较运算符
 Elist#参数列表
 Expression
 start::=P'
-P'::= P' P
-P'::=P
-P::=DI
-P::=SI
-SI::=SI S
-SI::=ε
+P'::=P' P
+P'::=ε
+P::=D
+P::=S
 S::=T id ;
 
-DI::=DI D
-DI::=D
 D::=def id ( Param ) { S }
 Param::=ε
 Param::=Param , T id
@@ -49,8 +43,8 @@ X::=boolean
 C::=[ num ] C
 C::=ε
 
-S ::=id = E ;
-S ::=L = E ;	
+S::=id = E ;
+S::=L = E ;	
 L::=id [ E ]
 L::=L [ E ]
 E::=E + Y
@@ -66,9 +60,9 @@ M::=digit
 M::=num
 M::=L
 
-S ::= if B { S }
-S ::= if B { S } else { S }
-S ::= while B do { S }
+S::= if B { S }
+S::= if B { S } else { S }
+S::= while B do { S }
 B::=B || G
 B::=G
 G::=G && H
