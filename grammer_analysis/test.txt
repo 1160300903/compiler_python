@@ -9,6 +9,6 @@ Expression
 S'::=S
 S::=A
 A::=B A
-A::=Îµ
+A::=¦Å
 B::=a B
 B::=b

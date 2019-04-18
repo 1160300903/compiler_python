@@ -79,48 +79,55 @@ class grammer_parser():
                         print(a)
                         assert a in self.terminators or a in self.variable or a == "ε"
                     assert temp_variable in self.variable
-                    self.expression.append(Expression(temp_variable,tuple(right_side.split())))
+                    if right_side=="ε":
+                        self.expression.append(Expression(temp_variable,tuple()))
+                    else:
+                        self.expression.append(Expression(temp_variable,tuple(right_side.split())))
         self.first_set_for_char()
         self.get_all_clourse()
         self.get_table()
     def first_set_for_char(self):
         for char in self.terminators:
             self.first_dict[char] = set([char])
-        self.first_dict["ε"] = set(["ε"])
         for char in self.variable:
             self.first_dict[char] = set()
         while True:
             stable = True
             for e in self.expression:
-                for i in range(len(e.rightside)):
-                    if e.rightside[i] in self.variable:
-                        if len((self.first_dict[e.rightside[i]]-set(["ε"]))-self.first_dict[e.leftside])>0:
-                            self.first_dict[e.leftside] = self.first_dict[e.leftside] | (self.first_dict[e.rightside[i]]-set(["ε"]))
+                if len(e.rightside)==0 and "ε" not in self.first_dict[e.leftside]:
+                        self.first_dict[e.leftside].add("ε")
+                        stable = False
+                else:
+                    for i in range(len(e.rightside)):
+                        if e.rightside[i] in self.variable:
+                            if len((self.first_dict[e.rightside[i]]-set(["ε"]))-self.first_dict[e.leftside])>0:
+                                self.first_dict[e.leftside] = self.first_dict[e.leftside] | (self.first_dict[e.rightside[i]]-set(["ε"]))
+                                stable = False
+                        elif e.rightside[i] in self.terminators and e.rightside[i] not in self.first_dict[e.leftside]:
+                            self.first_dict[e.leftside].add(e.rightside[i])
                             stable = False
-                    elif e.rightside[i] in self.terminators and e.rightside[i] not in self.first_dict[e.leftside]:
-                        self.first_dict[e.leftside].add(e.rightside[i])
-                        stable = False
-                    elif e.rightside[i] == "ε" and "ε" not in self.first_dict[e.leftside]:
-                        self.first_dict[e.leftside].add("ε")
-                        stable = False
-                    if i == len(e.rightside)-1 and "ε" in self.first_dict[e.rightside[i]] and "ε" not in self.first_dict[e.leftside]:
-                        self.first_dict[e.leftside].add("ε")
-                        stable = False
-                    if "ε" not in self.first_dict[e.rightside[i]]:
-                        break
+                        if i == len(e.rightside)-1 and "ε" in self.first_dict[e.rightside[i]] and "ε" not in self.first_dict[e.leftside]:
+                            self.first_dict[e.leftside].add("ε")
+                            stable = False
+                        if "ε" not in self.first_dict[e.rightside[i]]:
+                            break
             if stable:
                 break
                         
     def first_set_for_string(self,string):
         first = set()
-        for i in range(len(string)):
-            item = string[i]
-            first = first | (self.first_dict[item]-set("ε"))
-            if i == len(string)-1 and "ε" in self.first_dict[item]:
-                first.add("ε")
-            if "ε" not in self.first_dict[item]:
-                break
-        return first
+        if string == ["ε"] or string == []:
+            first.add("ε")
+            return first
+        else:
+            for i in range(len(string)):
+                item = string[i]
+                first = first | (self.first_dict[item]-set("ε"))
+                if i == len(string)-1 and "ε" in self.first_dict[item]:
+                    first.add("ε")
+                if "ε" not in self.first_dict[item]:
+                    break
+            return first
     def is_not_specified(self,item):
         if item.loc_of_point >= len(item.rightside):
             return False
@@ -134,16 +141,10 @@ class grammer_parser():
                     all_char = self.first_set_for_string(item.rightside[item.loc_of_point+1:]+tuple(item.ex_symbol))
                     for e in self.expression:
                         if e.leftside == item.rightside[item.loc_of_point]:
-                            if e.rightside == ("ε",):
-                                for c in all_char:
-                                    new_item = Item(e.leftside,e.rightside,1,c)
-                                    if new_item not in clourse_set:
-                                        temp_set.add(new_item)
-                            else:
-                                for c in all_char:
-                                    new_item = Item(e.leftside,e.rightside,0,c)
-                                    if new_item not in clourse_set:
-                                        temp_set.add(new_item)
+                            for c in all_char:
+                                new_item = Item(e.leftside,e.rightside,0,c)
+                                if new_item not in clourse_set:
+                                    temp_set.add(new_item)
             if temp_set:
                 clourse_set = clourse_set | temp_set
             else:
@@ -269,6 +270,6 @@ class grammer_parser():
                     print("\t",end="")
             print()
 if __name__ == "__main__":
-    g = grammer_parser("test.txt")
+    g = grammer_parser("grammar.txt")
     g.show_table()
     g.parse("abab",True)
