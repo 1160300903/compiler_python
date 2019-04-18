@@ -1,10 +1,13 @@
 Terminate
 do if else int boolean float while struct
 + - * / > < >= <= == != && || !
-( ) { } [ ] ; = , ε
+( ) { } [ ] ; = , #
 Variable
+P'#拓广文法
 P#开始符号
 D#定义语句
+DI#用于生成D
+SI#用于生成SI
 S#赋值语句
 T#类型信息
 X#基本类型
@@ -21,9 +24,10 @@ I#逻辑表达式
 R#比较运算符
 Elist#参数列表
 Expression
+P'::= P
 P::= DI SI
 SI::=SI S
-SI::=ε 
+SI::=ε
 
 DI::=DI D
 DI::=ε
