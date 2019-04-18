@@ -18,6 +18,8 @@ class Queue():
         if a in self.array:
             return True
         return False
+    def index(self,a):
+        return self.array.index(a)
 class Stack():
     def __init__(self):
         self.array = []
@@ -32,6 +34,14 @@ class Stack():
         if len(self.array) == 0:
             return True
         return False
+    def show_stack(self):
+        if self.is_empty():
+            return ""
+        else:
+            string = str(self.array[0])
+            for i in range(1,len(self.array)):
+                string += str(self.array[i])
+            return string
 class grammer_parser():
     def __init__(self,path):
         self.terminators = set()
@@ -58,11 +68,17 @@ class grammer_parser():
                     continue
                 if state == 1:
                     for t in line.split():
+                        assert t not in self.terminators
                         self.terminators.add(t)
                 elif state == 2:
+                    assert line.split("#")[0] not in self.variable
                     self.variable.add(line.split("#")[0])
                 elif state == 3:
                     temp_variable,right_side = line.split("::=")
+                    for a in right_side.split():
+                        print(a)
+                        assert a in self.terminators or a in self.variable or a == "ε"
+                    assert temp_variable in self.variable
                     self.expression.append(Expression(temp_variable,tuple(right_side.split())))
         self.first_set_for_char()
         self.get_all_clourse()
@@ -150,15 +166,15 @@ class grammer_parser():
             all_clourse.append(current)
             current_index = len(all_clourse)-1
             self.map_of_clourses[current_index] = {}
-            for x in (self.terminators | self.variable):
+            for x in sorted(list(self.terminators | self.variable)):
                 next = self.Go(current,x)
                 if next != set() and next not in self.all_clourse and not queue.In(next):#next不为空，并且不在队列中，也不在all_clourse中
                     queue.enqueue(next)
                     i+=1
-                    self.map_of_clourses[current_index][x] = i
-                elif next in self.all_clourse:
+                if next in self.all_clourse:
                     self.map_of_clourses[current_index][x] = self.all_clourse.index(next) 
-                elif 
+                elif queue.In(next):
+                    self.map_of_clourses[current_index][x] = len(self.all_clourse)+queue.index(next)
     def find_expression(self,item):
         for i in range(len(self.expression)):
             e = self.expression[i]
@@ -184,34 +200,49 @@ class grammer_parser():
                         self.action[i]["#"] = "acc"
                     else:
                         self.action[i][item.ex_symbol] = "r"+str(index)
-    def parse(self,string):
+    def parse(self,string,verbose):
         self.symbol_stack = Stack()
         self.state_stack = Stack()
         self.symbol_stack.push("#")
         self.state_stack.push(0)
         temp_string = string+"#"
         index = 0
-        try:
-            while True:
+        if verbose:
+            print("\t\t状态栈\t\t符号栈\t\t输入\t\t动作")
+        i = 0
+        while True:
+            try:
+                if verbose:
+                    i+=1
+                    print(str(i)+"\t\t"+self.state_stack.show_stack()+"\t\t"+self.symbol_stack.show_stack()+"\t\t"+temp_string[index:]+"\t\t",end="")
                 top_state = self.state_stack.get_top()
                 char = temp_string[index]
                 command = self.action[top_state][char]
-                if command.isdigit():#读入动作
+                if isinstance(command,int):#读入动作
                     self.state_stack.push(command)
                     self.symbol_stack.push(char)
                     index+=1
+                    if verbose:
+                        print("移进\t\t")
                 elif command=="acc":#接受动作
-                    print("接受")
+                    if verbose:
+                        print("接受\t\t")
                     break
                 else:#规约动作
                     e = self.expression[int(command[1:])]
                     self.state_stack.pop(len(e.rightside))
                     self.symbol_stack.pop(len(e.rightside))
                     self.symbol_stack.push(e.leftside)
+                    if verbose:
+                        print("规约\t\t")
+                        i+=1
+                        print(str(i)+"\t\t"+self.state_stack.show_stack()+"\t\t"+self.symbol_stack.show_stack()+"\t\t"+temp_string[index:]+"\t\t",end="")
                     top_state = self.state_stack.get_top()
                     self.state_stack.push(self.goto[top_state][e.leftside])
-        except KeyError as e:
-            print("错误")
+                    if verbose:
+                        print("goto\t\t")
+            except KeyError as e:
+                print("错误")
     def show_table(self):
         sorted_terminators = sorted(list(self.terminators))
         sorted_variable = sorted(list(self.variable))
@@ -240,3 +271,4 @@ class grammer_parser():
 if __name__ == "__main__":
     g = grammer_parser("test.txt")
     g.show_table()
+    g.parse("abab",True)
