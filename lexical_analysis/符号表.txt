@@ -1,4 +1,2 @@
 标识符:a	类型:None	偏移值:None
 标识符:num	类型:None	偏移值:None
-标识符:b	类型:None	偏移值:None
-标识符:c	类型:None	偏移值:None
