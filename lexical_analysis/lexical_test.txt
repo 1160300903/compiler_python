@@ -1,0 +1,22 @@
+@#
+1.a
+1ea
+1e+a
+&1
+|1
+/***/
+while(num!=100){num=num+1;}
+do{num=num+1;}while(num!=100);
+1.3
+1e4
+true
+false
+if
+else
+int boolean float string while struct print input def call
++ - *  /   **  ++  >   < 
+>=  <=    ==    !=   &&   ||  !
+(     )     {     }     [     
+]     ;     =   ,
+"123"
+/**

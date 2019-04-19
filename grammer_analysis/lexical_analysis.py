@@ -234,7 +234,7 @@ if __name__ == "__main__":
         for key in Boundarydict:
             typeFile.write(key+"\t"+str(Boundarydict[key])+"\t0\n")
 
-    file1 = open("test.txt","r")
+    file1 = open("lexical_test.txt","r")
     source = file1.read()
     input = Input(source)
     file2 = open("token.txt","w")
@@ -245,7 +245,7 @@ if __name__ == "__main__":
             continue
         elif token == "":
             break
-        file2.write(token + "\t\t" +"<"+str(type_code)+"\t, "+str(attribute)+" >\n")
+        file2.write(token + "\t\t" +"<"+str(type_code)+","+str(attribute)+","+str(input.row)+">\n")
     si.showTable()
     file1.close()
     file2.close()

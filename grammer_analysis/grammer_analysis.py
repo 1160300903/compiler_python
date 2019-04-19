@@ -53,8 +53,11 @@ class grammer_parser():
         self.map_of_clourses = {}
         self.action = []
         self.goto = []
+        self.follow_dict = {}
         self.symbol_stack = None
         self.state_stack = None
+        self.type_code = None
+        self.token_list = None
         with open(path,"r") as g:
             g.readline()
             state = 1
@@ -87,6 +90,32 @@ class grammer_parser():
         self.first_set_for_char()
         self.get_all_clourse()
         self.get_table()
+        self.get_follow()
+    def get_follow(self):
+        for a in self.variable:
+            self.follow_dict[a] = set()
+        self.follow_dict["start"] = set(["#"])
+        while True:
+            stable = True
+            for e in self.expression:
+                for i in range(len(e.rightside)):
+                    char = e.rightside[i]
+                    if char in self.variable:
+                        if i == len(e.rightside)-1 and char!=e.leftside and (self.follow_dict[e.leftside]-self.follow_dict[char])!=set():
+                            self.follow_dict[char] = self.follow_dict[char] | self.follow_dict[e.leftside]
+                            stable = False
+                        elif i!= len(e.rightside)-1:
+                            first_beta = self.first_set_for_string(e.rightside[i+1:])
+                            if ((first_beta - set(["ε"]))- self.follow_dict[char]) != set():
+                                self.follow_dict[char] = self.follow_dict[char] | (first_beta-set(["ε"]))
+                                stable = False
+                            if "ε" in first_beta and char!= e.leftside and (self.follow_dict[e.leftside]-self.follow_dict[char])!=set():
+                                self.follow_dict[char] = self.follow_dict[char] | self.follow_dict[e.leftside]
+                                stable = False
+            if stable:
+                break
+        for v in self.follow_dict:
+            assert "ε" not in self.follow_dict[v]
     def first_set_for_char(self):
         for char in self.terminators:
             self.first_dict[char] = set([char])
@@ -202,37 +231,25 @@ class grammer_parser():
                         assert "#" not in self.action[i]
                         self.action[i]["#"] = "acc"
                     else:
-                        print(i,item,self.action[i])
-                        print("r"+str(index))
                         assert item.ex_symbol not in self.action[i] 
                         self.action[i][item.ex_symbol] = "r"+str(index)
-    def parse(self,string,verbose):
+    def parse(self,verbose):
         self.symbol_stack = Stack()
         self.state_stack = Stack()
         self.symbol_stack.push("#")
         self.state_stack.push(0)
-        temp_string = string+"#"
+        self.token_list.append("#")
         index = 0
-        if verbose:
-            print("\t\t状态栈\t\t符号栈\t\t输入\t\t动作")
-        i = 0
         while True:
             try:
-                if verbose:
-                    i+=1
-                    print(str(i)+"\t\t"+self.state_stack.show_stack()+"\t\t"+self.symbol_stack.show_stack()+"\t\t"+temp_string[index:]+"\t\t",end="")
                 top_state = self.state_stack.get_top()
-                char = temp_string[index]
+                char = self.token_list[index]
                 command = self.action[top_state][char]
                 if isinstance(command,int):#读入动作
                     self.state_stack.push(command)
                     self.symbol_stack.push(char)
                     index+=1
-                    if verbose:
-                        print("移进\t\t")
                 elif command=="acc":#接受动作
-                    if verbose:
-                        print("接受\t\t")
                     break
                 else:#规约动作
                     e = self.expression[int(command[1:])]
@@ -240,41 +257,66 @@ class grammer_parser():
                     self.symbol_stack.pop(len(e.rightside))
                     self.symbol_stack.push(e.leftside)
                     if verbose:
-                        print("规约\t\t")
-                        i+=1
-                        print(str(i)+"\t\t"+self.state_stack.show_stack()+"\t\t"+self.symbol_stack.show_stack()+"\t\t"+temp_string[index:]+"\t\t",end="")
+                        print(e)
                     top_state = self.state_stack.get_top()
-                    self.state_stack.push(self.goto[top_state][e.leftside])
-                    if verbose:
-                        print("goto\t\t")
             except KeyError as e:
-                print("错误")
-    def show_table(self,verbose):
+                while True:
+                    top_state = self.state_stack.get_top()
+                    if len(self.goto[top_state]) != 0:
+                        break
+                    self.state_stack.pop(1)
+                    self.symbol_stack.pop(1)
+                variable = sorted(list(self.goto[top_state]))[0]#压入栈的变量
+                state = self.goto[top_state][variable]#压入栈的状态
+                self.state_stack.push(state)
+                self.symbol_stack.push(variable)
+                while True:
+                    char = self.token_list[index]
+                    if char not in self.follow_dict[variable]:
+                        index += 1
+                    else:
+                        break
+                print("Error at Line ["+str(self.type_code[i][2])+"]：[说明文字]")
+    def show_table(self,verbose=False):
         sorted_terminators = sorted(list(self.terminators))
         sorted_variable = sorted(list(self.variable))
-        
-        for i in range(len(self.all_clourse)):
-            if verbose:
-                print("clourse"+str(i))
-            sorted_expression = sorted(list(self.all_clourse[i]))
-            for item in sorted_expression:
-                temp_list = list(item.rightside)
-                temp_list.insert(item.loc_of_point,".")
-                print(item.leftside+"::="+"".join(temp_list)+"\t"+item.ex_symbol)
-        print("\t"+"\t".join(sorted_terminators)+"\t"+"\t".join(sorted_variable))
-        for i in range(len(self.all_clourse)):
-            print(str(i)+"\t",end="")
-            for char in sorted_terminators:
-                if char in self.action[i]:
-                    print(str(self.action[i][char])+"\t",end="")
+        if verbose:
+            for i in range(len(self.all_clourse)):
+                sorted_expression = sorted(list(self.all_clourse[i]))
+                for item in sorted_expression:
+                    temp_list = list(item.rightside)
+                    temp_list.insert(item.loc_of_point,".")
+                    print(item.leftside+"::="+"".join(temp_list)+"\t"+item.ex_symbol)
+            print("\t"+"\t".join(sorted_terminators)+"\t"+"\t".join(sorted_variable))
+            for i in range(len(self.all_clourse)):
+                print(str(i)+"\t",end="")
+                for char in sorted_terminators:
+                    if char in self.action[i]:
+                        print(str(self.action[i][char])+"\t",end="")
+                    else:
+                        print("\t",end="")
+                for char in sorted_variable:
+                    if char in self.goto[i]:
+                        print(str(self.goto[i][char])+"\t",end="")
+                    else:
+                        print("\t",end="")
+                print()
+        print("状态数"+str(len(self.all_clourse)))
+    def read_tokens(self):
+        self.type_code = []
+        self.token_list = []
+        name_map = {"1":"id","2":"CINT","3":"CFLOAT","5":"CSTRING"}
+        with open("token.txt","r") as t:
+            lines = t.readlines()
+            for line in lines:
+                token,type_code = line.strip().split()
+                type_code = tuple(type_code[1:len(type_code)-1].split(","))
+                if type_code[0] in name_map:
+                    self.token_list.append(name_map[type_code[0]])
                 else:
-                    print("\t",end="")
-            for char in sorted_variable:
-                if char in self.goto[i]:
-                    print(str(self.goto[i][char])+"\t",end="")
-                else:
-                    print("\t",end="")
-            print()
+                    self.token_list.append(token)
+                self.type_code.append(type_code)
 if __name__ == "__main__":
     g = grammer_parser("grammar.txt")
-    g.show_table()
+    g.show_table(True)
+    g.read_tokens()

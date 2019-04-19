@@ -1,8 +1,8 @@
 Terminate
-do if else int boolean float while struct def call true false
+do if else int boolean float while struct def call true false string print input
 + - * / > < >= <= == != && || !
 ( ) { } [ ] ; = , #
-id num digit
+id CINT CFLOAT CSTRING
 Variable
 start#拓广文法
 P'#产生多个P
@@ -13,7 +13,7 @@ Param#参数定义
 T#类型信息
 X#基本类型
 C#数据括号
-L#数据引用
+L#数组引用
 E#运算式
 Y#运算式
 F#运算式
@@ -33,6 +33,9 @@ P::=S
 S::=T id ;
 
 D::=def id ( Param ) { S }
+D::=print ( CSTRING ) ;
+D::=print ( id ) ;
+D::=input ( id ) ;
 Param::=ε
 Param::=Param , T id
 T::=X C
@@ -40,10 +43,12 @@ T::=struct { D }
 X::=int
 X::=float
 X::=boolean
-C::=[ num ] C
+X::=string
+C::=[ CINT ] C
 C::=ε
 
 S::=id = E ;
+S::=id = CSTRING
 S::=L = E ;	
 L::=id [ E ]
 L::=L [ E ]
@@ -56,8 +61,8 @@ Y::=F
 F::=( M )
 F::=M
 M::=id
-M::=digit
-M::=num
+M::=CINT
+M::=CFLOAT
 M::=L
 
 S::= if B { S }
