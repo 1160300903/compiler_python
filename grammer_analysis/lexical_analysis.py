@@ -57,13 +57,6 @@ class SymbolTable():
             if self.table[i].name == token:
                 return i
         return -1
-    def showTable(self):
-        print("符号表")
-        for i in range(len(self.table)):
-            print("标识符:%s\t类型:%s\t偏移值:%s"%self.table[i])
-        with open("符号表.txt","w") as st:
-            for i in range(len(self.table)):
-                st.write("标识符:%s\t类型:%s\t偏移值:%s\n"%self.table[i])
 si = SymbolTable()
 
 def token_scan(input):
@@ -218,22 +211,7 @@ def token_scan(input):
     else:
         print("error: %drow,%dcolumn,%s"%(input.row,input.column,"非法字符")) 
         return None,None,None
-if __name__ == "__main__":
-    with open("种别码表.txt","w") as typeFile:
-        typeFile.write("字符串\t种别码\t属性值\n")
-        typeFile.write("标识符\t1\t符号表地址\n")  
-        typeFile.write("整数\t2\t整数数值\n") 
-        typeFile.write("浮点数\t3\t浮点数值\n") 
-        typeFile.write("true\t4\t1\n") 
-        typeFile.write("false\t4\t0\n") 
-        typeFile.write("字符串\t5\t字符串值\n") 
-        for key in Keydict:
-            typeFile.write(key+"\t"+str(Keydict[key])+"\t0\n")
-        for key in Optiondict:
-            typeFile.write(key+"\t"+str(Optiondict[key])+"\t0\n")
-        for key in Boundarydict:
-            typeFile.write(key+"\t"+str(Boundarydict[key])+"\t0\n")
-
+def lexical_parse():
     file1 = open("lexical_test.txt","r")
     source = file1.read()
     input = Input(source)
@@ -246,6 +224,5 @@ if __name__ == "__main__":
         elif token == "":
             break
         file2.write(token + "\t\t" +"<"+str(type_code)+","+str(attribute)+","+str(input.row)+">\n")
-    si.showTable()
     file1.close()
     file2.close()

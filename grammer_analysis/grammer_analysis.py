@@ -1,4 +1,5 @@
 from collections import namedtuple
+from lexical_analysis import lexical_parse
 class Expression(namedtuple("Expression","leftside rightside")):
     pass
 class Item(namedtuple("Item","leftside rightside loc_of_point ex_symbol")):
@@ -233,12 +234,12 @@ class grammer_parser():
                     else:
                         assert item.ex_symbol not in self.action[i] 
                         self.action[i][item.ex_symbol] = "r"+str(index)
-    def parse(self,verbose):
+    def grammar_parse(self,verbose=True):
         self.symbol_stack = Stack()
         self.state_stack = Stack()
         self.symbol_stack.push("#")
         self.state_stack.push(0)
-        self.token_list.append("#")
+        expression_file = open("规约过程.txt","w")
         index = 0
         while True:
             try:
@@ -257,55 +258,61 @@ class grammer_parser():
                     self.symbol_stack.pop(len(e.rightside))
                     self.symbol_stack.push(e.leftside)
                     if verbose:
-                        print(e)
+                        expression_file.write(e.leftside+"::="+"".join(e.rightside)+"\n")
                     top_state = self.state_stack.get_top()
+                    self.state_stack.push(self.goto[top_state][e.leftside])
+                #print(self.symbol_stack.array)#打印符号栈
             except KeyError as e:
                 while True:
                     top_state = self.state_stack.get_top()
-                    if len(self.goto[top_state]) != 0:
+                    if "P" in self.goto[top_state]:
                         break
                     self.state_stack.pop(1)
                     self.symbol_stack.pop(1)
-                variable = sorted(list(self.goto[top_state]))[0]#压入栈的变量
-                state = self.goto[top_state][variable]#压入栈的状态
+                state = self.goto[top_state]["P"]#压入栈的状态
                 self.state_stack.push(state)
-                self.symbol_stack.push(variable)
+                self.symbol_stack.push("P")
                 while True:
                     char = self.token_list[index]
-                    if char not in self.follow_dict[variable]:
+                    if char not in self.follow_dict["P"]:
                         index += 1
+                        if index>=len(self.token_list):
+                            index=len(self.token_list)-1
+                            break
                     else:
                         break
-                print("Error at Line ["+str(self.type_code[i][2])+"]：[说明文字]")
+                print("Error at Line ["+str(self.type_code[index][2])+"]：[the error is near "+self.init_token_list[index]+"]")
     def show_table(self,verbose=False):
         sorted_terminators = sorted(list(self.terminators))
         sorted_variable = sorted(list(self.variable))
-        if verbose:
-            for i in range(len(self.all_clourse)):
-                sorted_expression = sorted(list(self.all_clourse[i]))
-                for item in sorted_expression:
-                    temp_list = list(item.rightside)
-                    temp_list.insert(item.loc_of_point,".")
-                    print(item.leftside+"::="+"".join(temp_list)+"\t"+item.ex_symbol)
-            print("\t"+"\t".join(sorted_terminators)+"\t"+"\t".join(sorted_variable))
-            for i in range(len(self.all_clourse)):
-                print(str(i)+"\t",end="")
-                for char in sorted_terminators:
-                    if char in self.action[i]:
-                        print(str(self.action[i][char])+"\t",end="")
-                    else:
-                        print("\t",end="")
-                for char in sorted_variable:
-                    if char in self.goto[i]:
-                        print(str(self.goto[i][char])+"\t",end="")
-                    else:
-                        print("\t",end="")
-                print()
-        print("状态数"+str(len(self.all_clourse)))
+        with open("LR(1)分析表.txt","w") as l:
+            if verbose:
+                """for i in range(len(self.all_clourse)):
+                    sorted_expression = sorted(list(self.all_clourse[i]))
+                    for item in sorted_expression:
+                        temp_list = list(item.rightside)
+                        temp_list.insert(item.loc_of_point,".")
+                        print(item.leftside+"::="+"".join(temp_list)+"\t"+item.ex_symbol)"""
+                l.write("\t\t"+"\t\t".join(sorted_terminators)+"\t\t"+"\t\t".join(sorted_variable)+"\n")
+                for i in range(len(self.all_clourse)):
+                    l.write(str(i)+"\t\t")
+                    for char in sorted_terminators:
+                        if char in self.action[i]:
+                            l.write(str(self.action[i][char])+"\t\t")
+                        else:
+                            l.write("\t\t")
+                    for char in sorted_variable:
+                        if char in self.goto[i]:
+                            l.write(str(self.goto[i][char])+"\t\t")
+                        else:
+                            l.write("\t\t")
+                    l.write("\n")
+            l.write("状态数"+str(len(self.all_clourse)))
     def read_tokens(self):
         self.type_code = []
         self.token_list = []
-        name_map = {"1":"id","2":"CINT","3":"CFLOAT","5":"CSTRING"}
+        self.init_token_list = []
+        name_map = {"1":"id","2":"CI","3":"CF","5":"CS"}
         with open("token.txt","r") as t:
             lines = t.readlines()
             for line in lines:
@@ -315,8 +322,14 @@ class grammer_parser():
                     self.token_list.append(name_map[type_code[0]])
                 else:
                     self.token_list.append(token)
+                self.init_token_list.append(token)
                 self.type_code.append(type_code)
+        self.token_list.append("#")
+        self.init_token_list.append("end of the codes")
+        self.type_code.append((None,None,self.type_code[-1][2]))
 if __name__ == "__main__":
+    lexical_parse()
     g = grammer_parser("grammar.txt")
-    g.show_table(True)
+    g.show_table(True)#在文件中打印符号表。现在已经打印过了，所以注释掉了
     g.read_tokens()
+    g.grammar_parse()

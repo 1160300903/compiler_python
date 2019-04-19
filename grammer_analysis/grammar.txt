@@ -2,13 +2,16 @@ Terminate
 do if else int boolean float while struct def call true false string print input
 + - * / > < >= <= == != && || !
 ( ) { } [ ] ; = , #
-id CINT CFLOAT CSTRING
+id CI CF CS
 Variable
 start#拓广文法
 P'#产生多个P
 P#开始符号
 D#定义语句
 S#赋值语句
+Z#声明语句
+W'#生成多个W
+W#生成函数语句
 Param#参数定义
 T#类型信息
 X#基本类型
@@ -27,28 +30,32 @@ Elist#参数列表
 Expression
 start::=P'
 P'::=P' P
-P'::=ε
+P'::=P
 P::=D
 P::=S
-S::=T id ;
+S::=Z ;
+Z::=T id
 
-D::=def id ( Param ) { S }
-D::=print ( CSTRING ) ;
-D::=print ( id ) ;
-D::=input ( id ) ;
+D::=def id ( Param ) { W' }
+W'::=W
+W'::=W' W
+W::=S
+S::=print ( CS ) ;
+S::=print ( id ) ;
+S::=input ( id ) ;
 Param::=ε
 Param::=Param , T id
 T::=X C
-T::=struct { D }		
+T::=struct { Z }		
 X::=int
 X::=float
 X::=boolean
 X::=string
-C::=[ CINT ] C
+C::=[ CI ] C
 C::=ε
 
 S::=id = E ;
-S::=id = CSTRING
+S::=id = CS ;
 S::=L = E ;	
 L::=id [ E ]
 L::=L [ E ]
@@ -61,8 +68,8 @@ Y::=F
 F::=( M )
 F::=M
 M::=id
-M::=CINT
-M::=CFLOAT
+M::=CI
+M::=CF
 M::=L
 
 S::= if B { S }
