@@ -43,7 +43,7 @@ class Stack():
             for i in range(1,len(self.array)):
                 string += str(self.array[i])
             return string
-class grammer_parser():
+class grammar_parser():
     def __init__(self,path):
         self.terminators = set()
         self.variable = set()
@@ -143,8 +143,7 @@ class grammer_parser():
                         if "ε" not in self.first_dict[e.rightside[i]]:
                             break
             if stable:
-                break
-                        
+                break        
     def first_set_for_string(self,string):
         first = set()
         if string == ["ε"] or string == []:
@@ -258,11 +257,15 @@ class grammer_parser():
                     self.symbol_stack.pop(len(e.rightside))
                     self.symbol_stack.push(e.leftside)
                     if verbose:
-                        expression_file.write(e.leftside+"::="+"".join(e.rightside)+"\n")
+                        if e.rightside:
+                            expression_file.write(e.leftside+"::="+"".join(e.rightside)+"\n")
+                        else:
+                            expression_file.write(e.leftside+"::="+"".join(e.rightside+("ε",))+"\n")
                     top_state = self.state_stack.get_top()
                     self.state_stack.push(self.goto[top_state][e.leftside])
                 #print(self.symbol_stack.array)#打印符号栈
             except KeyError as e:
+                print("Error at Line ["+str(self.type_code[index][2])+"]：[the error is near \""+self.init_token_list[index]+"\"]")
                 while True:
                     top_state = self.state_stack.get_top()
                     if "P" in self.goto[top_state]:
@@ -281,7 +284,7 @@ class grammer_parser():
                             break
                     else:
                         break
-                print("Error at Line ["+str(self.type_code[index][2])+"]：[the error is near "+self.init_token_list[index]+"]")
+        expression_file.close()
     def show_table(self,verbose=False):
         sorted_terminators = sorted(list(self.terminators))
         sorted_variable = sorted(list(self.variable))
@@ -298,7 +301,10 @@ class grammer_parser():
                     l.write(str(i)+"\t\t")
                     for char in sorted_terminators:
                         if char in self.action[i]:
-                            l.write(str(self.action[i][char])+"\t\t")
+                            if type(self.action[i][char])==str:
+                                l.write(str(self.action[i][char])+"\t\t")
+                            else:
+                                l.write("S"+str(self.action[i][char])+"\t\t")
                         else:
                             l.write("\t\t")
                     for char in sorted_variable:
@@ -325,11 +331,11 @@ class grammer_parser():
                 self.init_token_list.append(token)
                 self.type_code.append(type_code)
         self.token_list.append("#")
-        self.init_token_list.append("end of the codes")
+        self.init_token_list.append("#")
         self.type_code.append((None,None,self.type_code[-1][2]))
 if __name__ == "__main__":
     lexical_parse()
-    g = grammer_parser("grammar.txt")
+    g = grammar_parser("grammar.txt")
     g.show_table(True)#在文件中打印符号表。现在已经打印过了，所以注释掉了
     g.read_tokens()
     g.grammar_parse()

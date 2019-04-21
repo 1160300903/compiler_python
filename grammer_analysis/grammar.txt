@@ -9,7 +9,6 @@ P'#产生多个P
 P#开始符号
 D#定义语句
 S#赋值语句
-Z#声明语句
 W'#生成多个W
 W#生成函数语句
 Param#参数定义
@@ -33,8 +32,7 @@ P'::=P' P
 P'::=P
 P::=D
 P::=S
-S::=Z ;
-Z::=T id
+S::=T id ;
 
 D::=def id ( Param ) { W' }
 W'::=W
@@ -46,7 +44,7 @@ S::=input ( id ) ;
 Param::=ε
 Param::=Param , T id
 T::=X C
-T::=struct { Z }		
+T::=struct { Param }		
 X::=int
 X::=float
 X::=boolean
