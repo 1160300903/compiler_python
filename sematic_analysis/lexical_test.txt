@@ -1,0 +1,16 @@
+int a;
+a = 1;
+if (a>0) {
+a = 2; }
+else{
+a=1;}
+while (a<10) do { a = a+1; }
+int[1][3] b;
+def func(int a){
+    print('1');
+    input(a);
+}
+struct{int a, boolean b} s;
+if else{}
+a = 1
+while () do {}

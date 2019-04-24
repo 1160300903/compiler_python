@@ -1,0 +1,106 @@
+Terminate
+do if else int boolean float while struct def call true false char print input
++ - * / > < >= <= == != && || !
+( ) { } [ ] ; = , . #
+id CI CF CC
+Variable
+start#拓广文法
+P'#产生多个P
+P#开始符号
+D#定义语句
+S#赋值语句
+W'#生成多个S
+Param#参数定义
+T#类型信息
+X#基本类型
+C#数据括号
+L#数组引用
+E#运算式
+Y#运算式
+F#运算式
+M#运算式
+B#逻辑表达式
+G#逻辑表达式
+H#逻辑表达式
+I#逻辑表达式
+R#比较运算符
+Elist#参数列表
+Left#赋值语句左部
+M1#标志性非终结符1
+M2#标志性非终结符2
+M3#标志性非终结符3
+M4#标志性非终结符4
+Expression
+start::=P'
+P'::=P' P
+P'::=P
+P::=D
+P::=S
+
+
+D::=def id M1 ( Param ) { W' } 完成
+M1::=ε 完成
+W'::=S 跳过
+W'::=W' S 跳过
+S::=T id ; 完成
+Param::=T id 完成
+Param::=Param , T id 完成
+T::=X C 完成
+T::=struct { M2 Param } 完成
+M2::=ε 完成
+X::=int 完成
+X::=float 完成
+X::=boolean 完成
+X::=char 完成
+C::=[ CI ] C 完成
+C::=ε 完成
+
+S::=print ( CC ) ; 跳过
+S::=print ( id ) ; 跳过
+S::=input ( id ) ; 跳过
+
+S::=Left = E ;完成
+S::=Left = B ;完成
+Left::=id 完成
+Left::=L 完成
+Left::=id . Left 完成
+L::=id [ E ] 完成
+L::=L [ E ] 完成
+E::=E + Y 完成
+E::=E - Y 完成
+E::=Y 完成
+Y::=Y * F 完成
+Y::=Y / F 完成
+Y::=F 完成
+F::=( M ) 完成
+F::=M 完成
+M::=Left 完成
+M::=CI 完成
+M::=CF 完成
+M::=CC 完成
+
+S::= if B { M3 W' } 完成
+S::= if B { M3 W' M4 } else { M3 W' } 完成
+S::= while M3 B do { M3 W' } 完成
+M3::=ε 完成
+M4::=ε 完成
+B::=B || M3 G 完成
+B::=G 完成
+G::=G && M3 H 完成
+G::=H 完成
+H::=! H 完成
+H::=I 完成
+I::=E R E 完成
+I::=( B ) 完成
+I::=true 完成
+I::=false 完成	
+R::=< 完成
+R::=< = 完成
+R::== = 完成
+R::=! = 完成
+R::=> 完成
+R::=> =	完成	
+
+S::=call id ( Elist ) ;
+Elist::=Elist , E
+Elist::=ε

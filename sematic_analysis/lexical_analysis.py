@@ -35,11 +35,11 @@ class Input():
 #无符号整数 2
 #无符号浮点数 3
 #布尔常数 4
-#字符串常数 5
-Keydict = {a[1]:a[0] for a in enumerate(["do","if","else","int","boolean","float","string","while","struct","print","input","def","call"],start = 6)}
+#字符常数 5
+Keydict = {a[1]:a[0] for a in enumerate(["do","if","else","int","boolean","float","char","while","struct","print","input","def","call"],start = 6)}
 booldict = {"true":1,"false":0}#存储属性值不是种别码
 Optiondict = {a[1]:a[0] for a in enumerate(["+","-","*","/",">","<",">=","<=","==","!=","&&","||","!"],start = 6+len(Keydict))}
-Boundarydict = {a[1]:a[0] for a in enumerate(["(",")","{","}","[","]",";","=",","],start = 6+len(Keydict)+len(Optiondict))}
+Boundarydict = {a[1]:a[0] for a in enumerate(["(",")","{","}","[","]",";","=",",","."],start = 6+len(Keydict)+len(Optiondict))}
 class SymbolItem(namedtuple("SymbolItem","name type offset")):
     pass
 class SymbolTable():
@@ -53,13 +53,6 @@ class SymbolTable():
             if self.table[i].name == token:
                 return i
         return -1
-    def showTable(self):
-        print("符号表")
-        for i in range(len(self.table)):
-            print("标识符:%s\t类型:%s\t偏移值:%s"%self.table[i])
-        with open("符号表.txt","w") as st:
-            for i in range(len(self.table)):
-                st.write("标识符:%s\t类型:%s\t偏移值:%s\n"%self.table[i])
 si = SymbolTable()
 
 def token_scan(input):
@@ -166,16 +159,15 @@ def token_scan(input):
         return ("+", Optiondict["+"],0)
     elif char == "-":
         return ("-", Optiondict["-"],0)
-    elif char == '"':
-        while True:
-            char = input.get_char()
-            if char == "":
-                print("error: %drow,%dcolumn,%s"%(input.row,input.column,"字符串不封闭")) 
-                return "",None,None
-            if char=='"':
-                break
-        token = input.copy_token()
-        return (token,5,token)
+    elif char == "'":
+        char = input.get_char()
+        token = char
+        char = input.get_char()
+        if char != "'":
+            print("error: %drow,%dcolumn,%s"%(input.row,input.column,"字符常量出错"))
+            return None,None,None
+        else:
+            return (token,5,token)
     elif char == "/":
         char = input.get_char()
         if char == "*":
@@ -209,28 +201,15 @@ def token_scan(input):
         return (";", Boundarydict[";"],0)
     elif char == ",":
         return (",", Boundarydict[","],0)
+    elif char==".":
+        return (".",Boundarydict["."],0)
     elif char == "":
         return "",None,None
     else:
         print("error: %drow,%dcolumn,%s"%(input.row,input.column,"非法字符")) 
         return None,None,None
-if __name__ == "__main__":
-    with open("种别码表.txt","w") as typeFile:
-        typeFile.write("字符串\t种别码\t属性值\n")
-        typeFile.write("标识符\t1\t符号表地址\n")  
-        typeFile.write("整数\t2\t整数数值\n") 
-        typeFile.write("浮点数\t3\t浮点数值\n") 
-        typeFile.write("true\t4\t1\n") 
-        typeFile.write("false\t4\t0\n") 
-        typeFile.write("字符串\t5\t字符串值\n") 
-        for key in Keydict:
-            typeFile.write(key+"\t"+str(Keydict[key])+"\t0\n")
-        for key in Optiondict:
-            typeFile.write(key+"\t"+str(Optiondict[key])+"\t0\n")
-        for key in Boundarydict:
-            typeFile.write(key+"\t"+str(Boundarydict[key])+"\t0\n")
-
-    file1 = open("test.txt","r")
+def lexical_parse():
+    file1 = open("lexical_test.txt","r")
     source = file1.read()
     input = Input(source)
     file2 = open("token.txt","w")
@@ -241,7 +220,6 @@ if __name__ == "__main__":
             continue
         elif token == "":
             break
-        file2.write(token + "\t\t" +"<"+str(type_code)+"\t, "+str(attribute)+" >\n")
-    si.showTable()
+        file2.write(token + "\t\t" +"<"+str(type_code)+","+str(attribute)+","+str(input.row)+">\n")
     file1.close()
     file2.close()

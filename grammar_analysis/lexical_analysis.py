@@ -31,19 +31,15 @@ class Input():
         return result
     def reset_begin(self):
         self.begin = self.i
-    def isEnd(self):
-        if self.begin >= len(source):
-            return True
-        return False
 #标识符 1   
 #无符号整数 2
 #无符号浮点数 3
 #布尔常数 4
-#字符串常数 5
-Keydict = {a[1]:a[0] for a in enumerate(["do","if","else","int","boolean","float","string","while","struct","print","input","def","call"],start = 6)}
+#字符常数 5
+Keydict = {a[1]:a[0] for a in enumerate(["do","if","else","int","boolean","float","char","while","struct","print","input","def","call"],start = 6)}
 booldict = {"true":1,"false":0}#存储属性值不是种别码
 Optiondict = {a[1]:a[0] for a in enumerate(["+","-","*","/",">","<",">=","<=","==","!=","&&","||","!"],start = 6+len(Keydict))}
-Boundarydict = {a[1]:a[0] for a in enumerate(["(",")","{","}","[","]",";","=",","],start = 6+len(Keydict)+len(Optiondict))}
+Boundarydict = {a[1]:a[0] for a in enumerate(["(",")","{","}","[","]",";","=",",","."],start = 6+len(Keydict)+len(Optiondict))}
 class SymbolItem(namedtuple("SymbolItem","name type offset")):
     pass
 class SymbolTable():
@@ -163,16 +159,15 @@ def token_scan(input):
         return ("+", Optiondict["+"],0)
     elif char == "-":
         return ("-", Optiondict["-"],0)
-    elif char == '"':
-        while True:
-            char = input.get_char()
-            if char == "":
-                print("error: %drow,%dcolumn,%s"%(input.row,input.column,"字符串不封闭")) 
-                return "",None,None
-            if char=='"':
-                break
-        token = input.copy_token()
-        return (token,5,token)
+    elif char == "'":
+        char = input.get_char()
+        token = char
+        char = input.get_char()
+        if char != "'":
+            print("error: %drow,%dcolumn,%s"%(input.row,input.column,"字符常量出错"))
+            return None,None,None
+        else:
+            return (token,5,token)
     elif char == "/":
         char = input.get_char()
         if char == "*":
@@ -206,6 +201,8 @@ def token_scan(input):
         return (";", Boundarydict[";"],0)
     elif char == ",":
         return (",", Boundarydict[","],0)
+    elif char==".":
+        return (".",Boundarydict["."],0)
     elif char == "":
         return "",None,None
     else:

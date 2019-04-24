@@ -26,11 +26,13 @@ class Stack():
         self.array = []
     def push(self,a):
         self.array.append(a)
-    def pop(self,n):
+    def pop(self,n=1):
+        result = self.array[-n:]
         for i in range(n):
             self.array.pop()
-    def get_top(self):
-        return self.array[-1]
+        return result
+    def get_top(self,n=1):
+        return self.array[-n]
     def is_empty(self):
         if len(self.array) == 0:
             return True
@@ -59,6 +61,8 @@ class grammar_parser():
         self.state_stack = None
         self.type_code = None
         self.token_list = None
+        self.attribute_stack = None
+        self.name_map = {}
         with open(path,"r") as g:
             g.readline()
             state = 1
@@ -71,9 +75,15 @@ class grammar_parser():
                     state = 3
                     continue
                 if state == 1:
-                    for t in line.split():
+                    ts = line.split()
+                    for t in ts:
                         assert t not in self.terminators
                         self.terminators.add(t)
+                    if "id" in line:
+                        self.name_map["1"]=ts[0]
+                        self.name_map["2"]=ts[1]
+                        self.name_map["3"]=ts[2]
+                        self.name_map["5"]=ts[3]
                 elif state == 2:
                     assert line.split("#")[0] not in self.variable
                     self.variable.add(line.split("#")[0])
@@ -236,6 +246,7 @@ class grammar_parser():
     def grammar_parse(self,verbose=True):
         self.symbol_stack = Stack()
         self.state_stack = Stack()
+        self.attribute_stack = Stack()
         self.symbol_stack.push("#")
         self.state_stack.push(0)
         expression_file = open("规约过程.txt","w")
@@ -248,21 +259,33 @@ class grammar_parser():
                 if isinstance(command,int):#读入动作
                     self.state_stack.push(command)
                     self.symbol_stack.push(char)
+                    self.attribute_stack.push({})
                     index+=1
                 elif command=="acc":#接受动作
                     break
                 else:#规约动作
                     e = self.expression[int(command[1:])]
+                    #TODO
+                    #规约前执行语义动作
+                    #调用函数
+                    pass
+                    #规约
                     self.state_stack.pop(len(e.rightside))
                     self.symbol_stack.pop(len(e.rightside))
+                    self.attribute_stack.pop(len(e.rightside))
                     self.symbol_stack.push(e.leftside)
+                    top_state = self.state_stack.get_top()
+                    self.state_stack.push(self.goto[top_state][e.leftside])
+                    #TODO
+                    #特征栈的变化
+                    pass
+                    #self.attribute_stack.push()
+                    #输出序列
                     if verbose:
                         if e.rightside:
                             expression_file.write(e.leftside+"::="+"".join(e.rightside)+"\n")
                         else:
                             expression_file.write(e.leftside+"::="+"".join(e.rightside+("ε",))+"\n")
-                    top_state = self.state_stack.get_top()
-                    self.state_stack.push(self.goto[top_state][e.leftside])
                 #print(self.symbol_stack.array)#打印符号栈
             except KeyError as e:
                 print("Error at Line ["+str(self.type_code[index][2])+"]：[the error is near \""+self.init_token_list[index]+"\"]")
@@ -272,9 +295,11 @@ class grammar_parser():
                         break
                     self.state_stack.pop(1)
                     self.symbol_stack.pop(1)
+                    self.attribute_stack.pop(1)
                 state = self.goto[top_state]["P"]#压入栈的状态
                 self.state_stack.push(state)
                 self.symbol_stack.push("P")
+                self.attribute_stack.push({})
                 while True:
                     char = self.token_list[index]
                     if char not in self.follow_dict["P"]:
@@ -318,14 +343,13 @@ class grammar_parser():
         self.type_code = []
         self.token_list = []
         self.init_token_list = []
-        name_map = {"1":"id","2":"CI","3":"CF","5":"CS"}
         with open("token.txt","r") as t:
             lines = t.readlines()
             for line in lines:
                 token,type_code = line.strip().split()
                 type_code = tuple(type_code[1:len(type_code)-1].split(","))
-                if type_code[0] in name_map:
-                    self.token_list.append(name_map[type_code[0]])
+                if type_code[0] in self.name_map:
+                    self.token_list.append(self.name_map[type_code[0]])
                 else:
                     self.token_list.append(token)
                 self.init_token_list.append(token)
