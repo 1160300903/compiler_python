@@ -36,7 +36,7 @@ class Input():
 #无符号浮点数 3
 #布尔常数 4
 #字符常数 5
-Keydict = {a[1]:a[0] for a in enumerate(["do","if","else","int","boolean","float","char","while","struct","print","input","def","call"],start = 6)}
+Keydict = {a[1]:a[0] for a in enumerate(["do","if","else","int","boolean","float","char","while","struct","print","input","def","call","return"],start = 6)}
 booldict = {"true":1,"false":0}#存储属性值不是种别码
 Optiondict = {a[1]:a[0] for a in enumerate(["+","-","*","/",">","<",">=","<=","==","!=","&&","||","!"],start = 6+len(Keydict))}
 Boundarydict = {a[1]:a[0] for a in enumerate(["(",")","{","}","[","]",";","=",",","."],start = 6+len(Keydict)+len(Optiondict))}

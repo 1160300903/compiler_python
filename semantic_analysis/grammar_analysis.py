@@ -1,4 +1,5 @@
 from collections import namedtuple
+from sematic_analysis import sematic_action
 from lexical_analysis import lexical_parse
 class Expression(namedtuple("Expression","leftside rightside")):
     pass
@@ -63,6 +64,8 @@ class grammar_parser():
         self.token_list = None
         self.attribute_stack = None
         self.name_map = {}
+        self.sematic_action = sematic_action(self)
+        self.init_table = None
         with open(path,"r") as g:
             g.readline()
             state = 1
@@ -259,16 +262,21 @@ class grammar_parser():
                 if isinstance(command,int):#读入动作
                     self.state_stack.push(command)
                     self.symbol_stack.push(char)
-                    self.attribute_stack.push({})
+                    if char=="id":
+                        self.attribute_stack.push({"addr":self.init_token_list[index]})
+                    elif char in {"<","<=","!=","==",">",">="}:
+                        self.attribute_stack.push({"op":char})
+                    elif char in {"CI","CF","CC"}
+                        self.attribute_stack.push({"value":self.init_token_list[index]})
+                    else:
+                        self.attribute_stack.push({})
                     index+=1
                 elif command=="acc":#接受动作
                     break
                 else:#规约动作
                     e = self.expression[int(command[1:])]
-                    #TODO
                     #规约前执行语义动作
-                    #调用函数
-                    pass
+                    new_attribute = self.sematic_action.do_action(int(command[1:]))
                     #规约
                     self.state_stack.pop(len(e.rightside))
                     self.symbol_stack.pop(len(e.rightside))
@@ -276,10 +284,7 @@ class grammar_parser():
                     self.symbol_stack.push(e.leftside)
                     top_state = self.state_stack.get_top()
                     self.state_stack.push(self.goto[top_state][e.leftside])
-                    #TODO
-                    #特征栈的变化
-                    pass
-                    #self.attribute_stack.push()
+                    self.attribute_stack.push(new_attribute)
                     #输出序列
                     if verbose:
                         if e.rightside:
