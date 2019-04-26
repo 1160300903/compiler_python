@@ -55,7 +55,7 @@ X::=int
 X::=float
 X::=boolean
 X::=char
-C::=[ CI ] C
+C::=C [ CI ]
 C::=¦Å
 
 S::=print ( Elist ) ;
@@ -82,7 +82,7 @@ M::=CF
 M::=CC
 
 S::= if B { M3 W' }
-S::= if B { M3 W' M4 } else { M3 W' }
+S::= if B { M3 W' } M4 else { M3 W' }
 S::= while M3 B do { M3 W' }
 M3::=¦Å
 M4::=¦Å
@@ -95,13 +95,13 @@ H::=I
 I::=E R E
 I::=( B )
 I::=true
-I::=false	
+I::=false
 R::=<
-R::=< =
-R::== =
-R::=! =
+R::=<=
+R::===
+R::=!=
 R::=>
-R::=> =	
+R::=>=	
 
 S::=call id ( Elist ) ;
 Elist::=Elist , E

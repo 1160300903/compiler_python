@@ -1,51 +1,8 @@
-from collections import namedtuple
-from sematic_analysis import sematic_action
+import sys
+sys.path.append(".")
+from semantic_analysis import semantic_action
 from lexical_analysis import lexical_parse
-class Expression(namedtuple("Expression","leftside rightside")):
-    pass
-class Item(namedtuple("Item","leftside rightside loc_of_point ex_symbol")):
-    pass
-class Queue():
-    def __init__(self):
-        self.array = []
-    def dequeue(self):
-        return self.array.pop(0)
-    def enqueue(self,a):
-        self.array.append(a)
-    def is_empty(self):
-        if len(self.array) == 0:
-            return True
-        return False
-    def In(self,a):
-        if a in self.array:
-            return True
-        return False
-    def index(self,a):
-        return self.array.index(a)
-class Stack():
-    def __init__(self):
-        self.array = []
-    def push(self,a):
-        self.array.append(a)
-    def pop(self,n=1):
-        result = self.array[-n:]
-        for i in range(n):
-            self.array.pop()
-        return result
-    def get_top(self,n=1):
-        return self.array[-n]
-    def is_empty(self):
-        if len(self.array) == 0:
-            return True
-        return False
-    def show_stack(self):
-        if self.is_empty():
-            return ""
-        else:
-            string = str(self.array[0])
-            for i in range(1,len(self.array)):
-                string += str(self.array[i])
-            return string
+from util import symbol_table,Expression,Item,Queue,Stack
 class grammar_parser():
     def __init__(self,path):
         self.terminators = set()
@@ -62,10 +19,11 @@ class grammar_parser():
         self.state_stack = None
         self.type_code = None
         self.token_list = None
-        self.attribute_stack = None
+        self.attribute_stack = Stack()
         self.name_map = {}
-        self.sematic_action = sematic_action(self)
-        self.init_table = None
+        self.init_table = symbol_table(None)
+        self.semantic_action = semantic_action(self.attribute_stack,self.init_table)
+        self.code_file = open("intermediate_code.txt","w")
         with open(path,"r") as g:
             g.readline()
             state = 1
@@ -105,6 +63,23 @@ class grammar_parser():
         self.get_all_clourse()
         self.get_table()
         self.get_follow()
+    def show_symbol_table(self):
+        table = self.init_table
+        q = Queue()
+        q.enqueue(table)
+        i=0
+        while not q.is_empty():
+            table = q.dequeue()
+            print("符号表"+str(i),table.offset,table.father_table)
+            i+=1
+            for item in table.table:
+                if item.type=="fuction" or item.type=="record":
+                    q.enqueue(item.redundant_point)
+                if item.type=="array":
+                    item.show_item("\t")
+                    item.redundant_point.show_vector()
+                else:
+                    item.show_item()
     def get_follow(self):
         for a in self.variable:
             self.follow_dict[a] = set()
@@ -244,12 +219,14 @@ class grammar_parser():
                         assert "#" not in self.action[i]
                         self.action[i]["#"] = "acc"
                     else:
+                        if item.ex_symbol in self.action[i]:
+                            print(item,"r"+str(index),self.action[i][item.ex_symbol])
                         assert item.ex_symbol not in self.action[i] 
                         self.action[i][item.ex_symbol] = "r"+str(index)
+        print("文法无冲突")
     def grammar_parse(self,verbose=True):
         self.symbol_stack = Stack()
         self.state_stack = Stack()
-        self.attribute_stack = Stack()
         self.symbol_stack.push("#")
         self.state_stack.push(0)
         expression_file = open("规约过程.txt","w")
@@ -266,17 +243,24 @@ class grammar_parser():
                         self.attribute_stack.push({"addr":self.init_token_list[index]})
                     elif char in {"<","<=","!=","==",">",">="}:
                         self.attribute_stack.push({"op":char})
-                    elif char in {"CI","CF","CC"}
+                    elif char == "CI":
+                        self.attribute_stack.push({"value":int(self.init_token_list[index])})
+                    elif char == "CF":
+                        self.attribute_stack.push({"value":float(self.init_token_list[index])})
+                    elif char == "CC":
                         self.attribute_stack.push({"value":self.init_token_list[index]})
                     else:
                         self.attribute_stack.push({})
                     index+=1
                 elif command=="acc":#接受动作
+                    print(1)
+                    for i in range(len(self.semantic_action.code_list)):
+                        self.code_file.write(str(i)+":"+self.semantic_action.code_list[i].toString()+"\n")
                     break
                 else:#规约动作
                     e = self.expression[int(command[1:])]
                     #规约前执行语义动作
-                    new_attribute = self.sematic_action.do_action(int(command[1:]))
+                    new_attribute = self.semantic_action.do_action(int(command[1:]))
                     #规约
                     self.state_stack.pop(len(e.rightside))
                     self.symbol_stack.pop(len(e.rightside))
@@ -292,6 +276,7 @@ class grammar_parser():
                         else:
                             expression_file.write(e.leftside+"::="+"".join(e.rightside+("ε",))+"\n")
                 #print(self.symbol_stack.array)#打印符号栈
+                #print(self.attribute_stack.array)
             except KeyError as e:
                 print("Error at Line ["+str(self.type_code[index][2])+"]：[the error is near \""+self.init_token_list[index]+"\"]")
                 while True:
@@ -304,7 +289,7 @@ class grammar_parser():
                 state = self.goto[top_state]["P"]#压入栈的状态
                 self.state_stack.push(state)
                 self.symbol_stack.push("P")
-                self.attribute_stack.push({})
+                self.attribute_stack.push({"nextlist":[]})
                 while True:
                     char = self.token_list[index]
                     if char not in self.follow_dict["P"]:
@@ -362,9 +347,13 @@ class grammar_parser():
         self.token_list.append("#")
         self.init_token_list.append("#")
         self.type_code.append((None,None,self.type_code[-1][2]))
+
 if __name__ == "__main__":
+    print(1)
     lexical_parse()
     g = grammar_parser("grammar.txt")
     g.show_table(True)#在文件中打印符号表。现在已经打印过了，所以注释掉了
+    print(2)
     g.read_tokens()
     g.grammar_parse()
+    g.show_symbol_table()

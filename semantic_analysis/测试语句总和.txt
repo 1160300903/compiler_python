@@ -1,0 +1,66 @@
+int a;
+a = 1;
+if (a>0) {
+a = 2; }
+else{
+a=1;}
+while (a<10) do { a = a+1; }
+int[1][3] b;
+def func(int a){
+    print('1');
+    input(a);
+	return 0;
+}
+struct{int a, boolean b} s;
+if else{}
+a = 1
+while () do {}
+
+/*所有赋值语句*/
+def func(int a){
+    print('1');
+    input(a);
+	return 0;
+}
+int a;
+float[1][3] b;
+struct{boolean a,char b} c;
+boolean c;
+/*控制语句*/
+int a ; 
+if (a>0) {
+a = 2; }
+else{
+a=1;}
+if (true && false) {
+a = 2; }
+while true do { a=1 }
+a = 1;
+/*boolean值语句*/
+boolean a;
+boolean b;
+boolean c;
+a = true || false;
+b = true && false;
+c = !true;
+b = 1>3;
+c = (b);
+/*赋值语句*/
+int a;
+struct{boolean a,char b} c;
+float[1][3] b;
+char d;
+c.a = 1;
+b[0][1] = 1.0;
+d='1';
+a = 1+1;
+a = 1-1;
+a = 1*3;
+b = 1/3;
+/*输入输出*/
+int a;
+a = 1;
+print(a+b,a-b);
+input(a,b);
+/*函数调用*/
+call func(a);

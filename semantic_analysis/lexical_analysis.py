@@ -161,12 +161,12 @@ def token_scan(input):
         return ("-", Optiondict["-"],0)
     elif char == "'":
         char = input.get_char()
-        token = char
         char = input.get_char()
         if char != "'":
             print("error: %drow,%dcolumn,%s"%(input.row,input.column,"字符常量出错"))
             return None,None,None
         else:
+            token = input.copy_token()
             return (token,5,token)
     elif char == "/":
         char = input.get_char()
@@ -184,6 +184,7 @@ def token_scan(input):
                     if char == "/":#测试用例 **/
                         return  (None,None,None)        
         else:
+            input.retract()
             return ("/", Optiondict["/"],0)
     elif char == "(":
         return ("(", Boundarydict["("],0)
@@ -223,3 +224,5 @@ def lexical_parse():
         file2.write(token + "\t\t" +"<"+str(type_code)+","+str(attribute)+","+str(input.row)+">\n")
     file1.close()
     file2.close()
+if __name__ == "__main__":
+    print("lexical_analysis")

@@ -1,2 +1,9 @@
-X::=int
-C::=¦Å
+Left::=id
+M::=Left
+F::=M
+Y::=F
+E::=Y
+Elist::=E
+S::=callid(Elist);
+P::=S
+P'::=P

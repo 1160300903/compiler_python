@@ -1,47 +1,13 @@
-from grammar_analysis import Stack
-from grammar_analysis import Queue
-from collections import namedtuple
-from grammar_analysis import grammar_parser
-#把书上的符号属性修改了的：id.addr改为id.name
-class symbol_item(namedtuple("symbol_item","name type offset redundant_point")):
-    pass
-class array_dope_vector(namedtuple("array_dope_vector","dimension limits address type")):
-    pass
-class symbol_table():
-    def __init__(self,table):
-        self.table = []
-        self.offset = 0
-        self.father_table = table
-    def add(self, token):
-        self.table.append(symbol_item(token,None,None))#名字，属性，offset
-        return len(self.table)-1
-    def search(self, token):
-        current = self
-        while current != None:
-            for i in range(len(current.table)):
-                if current.table[i].name == token:
-                    return current.table[i]
-            current = current.father_table
-        return None
-    def set_offset(self,offset):
-        self.offset = offset
-class code():
-    def __init__(self,op,first,second,result):
-        self.op = op
-        self.first = first
-        self.second = second
-        self.result = result 
+from util import Stack,Queue,code,symbol_item,symbol_table,array_dope_vector
+import sys
+sys.path.append(".")
 class semantic_action():
-    def __init__(self,grammar_parser):
+    def __init__(self,attribute_stack,init_table):
         self.offset_stack = Stack()
         self.table_stack = Stack()
         self.offset_stack.push(0)
-        init_table = symbol_table(None)
         self.table_stack.push(init_table)
-        self.g = grammar_parser
-        self.g.init_table = init_table
-        self.attribute_stack = grammar_parser.attribute_stack
-        self.code_file = open("intermediate_code.txt","w")
+        self.attribute_stack = attribute_stack
         self.temp_count = 0
         self.code_list = []
         self.next_quad = 0
@@ -61,7 +27,14 @@ class semantic_action():
         self.semantic_action_61,self.semantic_action_62,self.semantic_action_63,self.semantic_action_64,self.semantic_action_65,
         self.semantic_action_66,self.semantic_action_67,self.semantic_action_68]
     def do_action(self,index):
-        self.action_array[index]()
+        try:
+            a = self.action_array[index]()
+            #print(self.attribute_stack.array)
+            #print("do semantic analysis "+str(index))
+            return a
+        except Exception as e:
+            #print(e)
+            print("语义分析错误")
     def new_temp(self):
         result = "$"+str(self.temp_count)
         self.temp_count += 1
@@ -120,12 +93,12 @@ class semantic_action():
         T_type = self.attribute_stack.get_top(2)["type"]
         T_width = self.attribute_stack.get_top(2)["width"]
         offset = self.offset_stack.get_top()
-        if "array_dope_vector" in self.attribute_stack.get_top(3):#数组或者正常变量
-            redundant_point = self.attribute_stack.get_top(3)["array_dope_vector"]
+        if "array_dope_vector" in self.attribute_stack.get_top(2):#数组或者正常变量
+            redundant_point = self.attribute_stack.get_top(2)["array_dope_vector"]
             if redundant_point != None:
                 redundant_point.address = offset
         else:#结构体
-            redundant_point = self.attribute_stack.get_top(3)["table"]
+            redundant_point = self.attribute_stack.get_top(2)["table"]
         t.add(symbol_item(id_name,T_type,offset,redundant_point))
         self.offset_stack.pop(1)
         self.offset_stack.push(offset+T_width)
@@ -137,12 +110,12 @@ class semantic_action():
         T_type = self.attribute_stack.get_top(2)["type"]
         T_width = self.attribute_stack.get_top(2)["width"]
         offset = self.offset_stack.get_top()
-        if "array_dope_vector" in self.attribute_stack.get_top(3):#数组或者正常变量
-            redundant_point = self.attribute_stack.get_top(3)["array_dope_vector"]
+        if "array_dope_vector" in self.attribute_stack.get_top(2):#数组或者正常变量
+            redundant_point = self.attribute_stack.get_top(2)["array_dope_vector"]
             if redundant_point != None:
                 redundant_point.address = offset
         else:#结构体
-            redundant_point = self.attribute_stack.get_top(3)["table"]
+            redundant_point = self.attribute_stack.get_top(2)["table"]
         t.add(symbol_item(id_name,T_type,offset,redundant_point))
         self.offset_stack.pop(1)
         self.offset_stack.push(offset+T_width)
@@ -169,11 +142,11 @@ class semantic_action():
     def semantic_action_21(self):
         C_attribute = {"array_dope_vector":None}
         return C_attribute
-    #C::=[ CI ] C
+    #C::=C [ CI ]
     def semantic_action_20(self):
-        right_C_attribute = self.attribute_stack.get_top(1)
+        right_C_attribute = self.attribute_stack.get_top(4)
         left_C_attribute = {}
-        limit = self.attribute_stack.get_top(3)["value"]
+        limit = self.attribute_stack.get_top(2)["value"]
         if right_C_attribute["array_dope_vector"] == None:
             left_C_attribute["array_dope_vector"] = array_dope_vector(1,(limit,),None,None)
         else:
@@ -197,7 +170,8 @@ class semantic_action():
             T_attribute["type"] = "array"
             total = vector.limits[0]
             for i in range(1,vector.dimension):
-                total *= vector.limit[i]
+                total *= vector.limits[i]
+            vector.type = X_attribute["type"]
             T_attribute["width"] = total * X_attribute["width"]
             T_attribute["array_dope_vector"] = vector
         return T_attribute
@@ -298,7 +272,7 @@ class semantic_action():
         id_name = self.attribute_stack.get_top(4)["addr"]
         L_attribute["array"] = self.table_stack.get_top(1).search(id_name).redundant_point
         L_attribute["addr"] = self.attribute_stack.get_top(2)["addr"]
-        L_attribute["ndim"] = 1
+        L_attribute["ndim"] = 0
         return L_attribute
     #{t:=newtemp;
     # m:= L1.ndim+1;
@@ -444,7 +418,7 @@ class semantic_action():
     #{backpatch(B.truelist, M31.quad);
     #backpatch(B.falselist, M32.quad);
     #S.nextlist := merge(W'1.nextlist, merge(M4.nextlist, W'2.nextlist))}
-    #S::= if B { M31 W'1 M4 } else { M32 W'2 }
+    #S::= if B { M31 W'1 } M4 else { M32 W'2 }
     def semantic_action_44(self):
         S_attribute = {}
         B = self.attribute_stack.get_top(11)
@@ -452,7 +426,7 @@ class semantic_action():
         M32 = self.attribute_stack.get_top(3)
         W_1 = self.attribute_stack.get_top(8)
         W_2 = self.attribute_stack.get_top(2)
-        M4 = self.attribute_stack.get_top(7)
+        M4 = self.attribute_stack.get_top(6)
         self.back_patch(B["truelist"],M31["quad"])
         self.back_patch(B["falselist"],M32["quad"])
         S_attribute["nextlist"] = self.merge(W_1["nextlist"],self.merge(M4["nextlist"],W_2["nextlist"]))
@@ -485,6 +459,7 @@ class semantic_action():
         M4_attribute = {}
         M4_attribute["nextlist"] = self.makelist(self.next_quad)
         self.gencode("goto",None,None,None)
+        return M4_attribute
     #{ backpatch(B1.falselist, M3.quad);
 	#B.truelist := merge(B1.truelist, G.truelist);
 	#B.falselist := G.falselist}
@@ -544,7 +519,8 @@ class semantic_action():
         H_attribute = {}
         I = self.attribute_stack.get_top(1)
         H_attribute["truelist"] = I["truelist"]
-        H_attribute["falselist"] = I["truelist"]
+        H_attribute["falselist"] = I["falselist"]
+        return H_attribute
     #{I.truelist :=makelist(nextquad);
     #I.falselist := makelist(nextquad+1);
 	#gencode('if' E1.addr R.op E2.addr 'goto –');
@@ -557,7 +533,7 @@ class semantic_action():
         E1 = self.attribute_stack.get_top(3)
         I_attribute["truelist"] = self.makelist(self.next_quad)
         I_attribute["falselist"] = self.makelist(self.next_quad+1)
-        self.gencode("goto"+R.op,E1["addr"],E2["addr"],None)
+        self.gencode("goto"+R["op"],E1["addr"],E2["addr"],None)
         self.gencode("goto",None,None,None)
         return I_attribute
     #I.truelist := B.truelist;
@@ -575,6 +551,7 @@ class semantic_action():
     def semantic_action_56(self):
         I_attribute = {}
         I_attribute["truelist"] = self.makelist(self.next_quad)
+        I_attribute["falselist"] = []
         self.gencode("goto",None,None,None)
         return I_attribute
     #I.falselist := makelist(nextquad);
@@ -583,6 +560,7 @@ class semantic_action():
     def semantic_action_57(self):
         I_attribute = {}
         I_attribute["falselist"] = self.makelist(self.next_quad)
+        I_attribute["truelist"] = []
         self.gencode("goto",None,None,None)
         return I_attribute
     #R.op = "<"
@@ -695,6 +673,7 @@ class semantic_action():
             self.gencode("param",None,None,p)
             n+=1
         self.gencode("call",id["addr"],n,None)
+        return {}
     #Elist::=Elist , E
     #{将E.addr添加到queue的队尾}
     def semantic_action_65(self):
@@ -743,7 +722,6 @@ class semantic_action():
     #gencode(‘call’, ‘SYSIN’, n, -);}
     #S::=input ( List ) ;
     def semantic_action_23(self):
-        List = self.attribute_stack.get_top(3)
         n = 0
         while not self.param_queue.is_empty():
             p = self.param_queue.dequeue()
@@ -751,3 +729,5 @@ class semantic_action():
             n = n+1
         self.gencode("call","SYSIN",n,None)
         return {}
+if __name__ == "__main__":
+    print("semantic_analysis")

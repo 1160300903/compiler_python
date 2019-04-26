@@ -1,0 +1,2 @@
+0:(param,None,None,a)
+1:(call,func,1,None)
