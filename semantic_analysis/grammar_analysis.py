@@ -1,7 +1,4 @@
-import sys
-sys.path.append(".")
 from semantic_analysis import semantic_action
-from lexical_analysis import lexical_parse
 from util import symbol_table,Expression,Item,Queue,Stack
 class grammar_parser():
     def __init__(self,path):
@@ -22,6 +19,7 @@ class grammar_parser():
         self.attribute_stack = Stack()
         self.name_map = {}
         self.init_table = symbol_table(None)
+        self.no_error_flag = True
         self.semantic_action = semantic_action(self.attribute_stack,self.init_table)
         self.code_file = open("intermediate_code.txt","w")
         with open(path,"r") as g:
@@ -240,22 +238,22 @@ class grammar_parser():
                     self.state_stack.push(command)
                     self.symbol_stack.push(char)
                     if char=="id":
-                        self.attribute_stack.push({"addr":self.init_token_list[index]})
+                        self.attribute_stack.push({"addr":self.init_token_list[index],"row_num":self.type_code[index][2]})
                     elif char in {"<","<=","!=","==",">",">="}:
-                        self.attribute_stack.push({"op":char})
+                        self.attribute_stack.push({"op":char,"row_num":self.type_code[index][2]})
                     elif char == "CI":
-                        self.attribute_stack.push({"value":int(self.init_token_list[index])})
+                        self.attribute_stack.push({"value":int(self.init_token_list[index]),"row_num":self.type_code[index][2]})
                     elif char == "CF":
-                        self.attribute_stack.push({"value":float(self.init_token_list[index])})
+                        self.attribute_stack.push({"value":float(self.init_token_list[index]),"row_num":self.type_code[index][2]})
                     elif char == "CC":
-                        self.attribute_stack.push({"value":self.init_token_list[index]})
+                        self.attribute_stack.push({"value":self.init_token_list[index],"row_num":self.type_code[index][2]})
                     else:
-                        self.attribute_stack.push({})
+                        self.attribute_stack.push({"row_num":self.type_code[index][2]})
                     index+=1
                 elif command=="acc":#接受动作
-                    print(1)
-                    for i in range(len(self.semantic_action.code_list)):
-                        self.code_file.write(str(i)+":"+self.semantic_action.code_list[i].toString()+"\n")
+                    if self.no_error_flag:
+                        for i in range(len(self.semantic_action.code_list)):
+                            self.code_file.write(str(i)+":"+self.semantic_action.code_list[i].toString()+"\n")
                     break
                 else:#规约动作
                     e = self.expression[int(command[1:])]
@@ -277,7 +275,8 @@ class grammar_parser():
                             expression_file.write(e.leftside+"::="+"".join(e.rightside+("ε",))+"\n")
                 #print(self.symbol_stack.array)#打印符号栈
                 #print(self.attribute_stack.array)
-            except KeyError as e:
+            except Exception as e:
+                self.no_error_flag=False
                 print("Error at Line ["+str(self.type_code[index][2])+"]：[the error is near \""+self.init_token_list[index]+"\"]")
                 while True:
                     top_state = self.state_stack.get_top()
@@ -349,11 +348,4 @@ class grammar_parser():
         self.type_code.append((None,None,self.type_code[-1][2]))
 
 if __name__ == "__main__":
-    print(1)
-    lexical_parse()
-    g = grammar_parser("grammar.txt")
-    g.show_table(True)#在文件中打印符号表。现在已经打印过了，所以注释掉了
-    print(2)
-    g.read_tokens()
-    g.grammar_parse()
-    g.show_symbol_table()
+    print("grammar_analysis")

@@ -23,6 +23,11 @@ class symbol_table():
     def add(self, symbol_item_instance):
         self.table.append(symbol_item_instance)#名字，属性，offset
         return len(self.table)-1
+    def duplicate_check(self, name):
+        for item in self.table:
+            if item.name==name:
+                return True
+        return False
     def search(self, token):
         current = self
         while current != None:
