@@ -12,6 +12,7 @@ class semantic_action():
         self.code_list = []
         self.next_quad = 0
         self.param_queue = Queue()
+        self.legal_type = {"float":3,"int":2,"char":1}
         self.action_array = [self.semantic_action_0,self.semantic_action_1,self.semantic_action_2,self.semantic_action_3,self.semantic_action_4,self.semantic_action_5
         ,self.semantic_action_6,self.semantic_action_7,self.semantic_action_8,self.semantic_action_9,self.semantic_action_10
         ,self.semantic_action_11,self.semantic_action_12,self.semantic_action_13,self.semantic_action_14,self.semantic_action_15,
@@ -41,19 +42,23 @@ class semantic_action():
     #{addwidth(top(tblptr),top(offset));
     #在外层过程符号表中加入当前过程
     #pop(tblptr);pop(offset)}
-    #D::=def id M1 ( Param ) { W' Z }
+    #D::=def X id M1 ( Param ) { W' Z }
     def semantic_action_5(self):
+        Param = self.attribute_stack.get_top(6)
         offset = self.offset_stack.get_top()
         t = self.table_stack.get_top()
         t.set_offset(offset)
         name = self.attribute_stack.get_top(9)["addr"]
-        row_num = self.attribute_stack(9)["row_num"]
+        X = self.attribute_stack.get_top(10)
+        Z = self.attribute_stack.get_top(2)
         if t.deuplicate_check(name):#重复定义，程序报错
-            print("Error at Line ["+str(row_num)+"]：["+name+"重复定义]")
             self.table_stack.pop(1)
             self.offset_stack.pop(1)
-            raise Exception()
+            raise Exception(name+"重复定义")
+        if X["type"] != Z["type"]:
+            raise Exception("返回类型不匹配")
         t.father_table.add(symbol_item(name,"fuction",None,t))
+        t.param_num = Param["para_num"]
         self.table_stack.pop(1)
         self.offset_stack.pop(1)
         return {}
@@ -61,10 +66,12 @@ class semantic_action():
     #{if 需要返回结果 then gencode(‘:=’, E.addr, -, F);
     #gencode(‘ret’, -, -, -)}
     def semantic_action_6(self):
+        Z_attribute = {}
         E = self.attribute_stack.get_top(2)
+        Z_attribute["type"] = E["type"]
         self.gencode("=",E["addr"],None,"F")
         self.gencode("ret",None,None,None)
-        return {}
+        return Z_attribute
     #M1::=ε
     def semantic_action_7(self):
         t = symbol_table(self.table_stack.get_top())
@@ -75,14 +82,12 @@ class semantic_action():
     def semantic_action_10(self):
         t = self.table_stack.get_top()
         id_name = self.attribute_stack.get_top(2)["addr"]
-        row_num = self.attribute_stack.get_top(2)["row_num"]
         T_type = self.attribute_stack.get_top(3)["type"]
         T_width = self.attribute_stack.get_top(3)["width"]
         offset = self.offset_stack.get_top()
 
         if t.deuplicate_check(id_name):
-            print("Error at Line ["+str(row_num)+"]：["+id_name+"重复定义]")
-            raise Exception()
+            raise Exception(id_name+"重复定义")
         else:
             if "array_dope_vector" in self.attribute_stack.get_top(3):#数组或者正常变量
                 redundant_point = self.attribute_stack.get_top(3)["array_dope_vector"]
@@ -96,16 +101,14 @@ class semantic_action():
         return {}
     #Param::=T id
     def semantic_action_11(self):
+        Param_attribute = {}
         t = self.table_stack.get_top()
         id_name = self.attribute_stack.get_top(1)["addr"]
-        row_num = self.attribute_stack.get_top(1)["row_num"]
         T_type = self.attribute_stack.get_top(2)["type"]
         T_width = self.attribute_stack.get_top(2)["width"]
         offset = self.offset_stack.get_top()
-
         if t.deuplicate_check(id_name):#重复定义了
-            print("Error at Line ["+str(row_num)+"]：["+id_name+"重复定义]")
-            raise Exception()
+            raise Exception(id_name+"重复定义")
         else:#没有重复定义
             if "array_dope_vector" in self.attribute_stack.get_top(2):#数组或者正常变量
                 redundant_point = self.attribute_stack.get_top(2)["array_dope_vector"]
@@ -116,19 +119,19 @@ class semantic_action():
             t.add(symbol_item(id_name,T_type,offset,redundant_point))
         self.offset_stack.pop(1)
         self.offset_stack.push(offset+T_width)
-        return {}
+        Param_attribute["param_num"] = 1
+        return Param_attribute
     #Param::=Param , T id
     def semantic_action_12(self):
+        Param_attribute = {}
+        Param = self.attribute_stack.get_top(4)
         t = self.table_stack.get_top()
         id_name = self.attribute_stack.get_top(1)["addr"]
-        row_num = self.attribute_stack.get_top(1)["row_num"]
         T_type = self.attribute_stack.get_top(2)["type"]
         T_width = self.attribute_stack.get_top(2)["width"]
         offset = self.offset_stack.get_top()
-
         if t.deuplicate_check(id_name):
-            print("Error at Line ["+str(row_num)+"]：["+id_name+"重复定义]")
-            raise Exception()
+            raise Exception(id_name+"重复定义")
         else:
             if "array_dope_vector" in self.attribute_stack.get_top(2):#数组或者正常变量
                 redundant_point = self.attribute_stack.get_top(2)["array_dope_vector"]
@@ -139,7 +142,8 @@ class semantic_action():
             t.add(symbol_item(id_name,T_type,offset,redundant_point))
         self.offset_stack.pop(1)
         self.offset_stack.push(offset+T_width)
-        return {}
+        Param_attribute["param_num"] = Param["param_num"]+1
+        return Param_attribute
     #{T.type := integer; T.width := 4}
     #X::=int
     def semantic_action_16(self):
@@ -224,6 +228,22 @@ class semantic_action():
         left_offset = self.attribute_stack.get_top(4)["offset"]
         left_addr = self.attribute_stack.get_top(4)["addr"]
         E_addr = self.attribute_stack.get_top(2)["addr"]
+        Left = self.attribute_stack.get_top(4)
+        E = self.attribute_stack.get_top(2)
+        if self.attribute_stack.get_top(4)["type"]=="struct":
+            raise Exception("赋值语句类型错误")
+        if not (Left["type"]=="boolean" and E["type"]=="boolean" or 
+                Left["type"] in self.legal_type and E["type"] in self.legal_type):
+                raise Exception("赋值类型不匹配")
+        #类型转换
+        left_type_prioity = self.legal_type[Left["type"]]
+        E_type_prioity = self.legal_type[E["type"]]
+        #如果Left的类型比E宽
+        if left_type_prioity>E_type_prioity:
+            temp = self.widen(E["addr"],E["type"],Left["type"])
+            E["addr"] = temp
+        elif left_type_prioity<E_type_prioity:
+            raise Exception("赋值语句不能向宽类型转换")
         if left_offset == None:
             self.gencode("=",str(E_addr),None,str(left_addr))
         else:
@@ -232,8 +252,9 @@ class semantic_action():
     #S::=Left = B ;
     def semantic_action_25(self):
         left = self.attribute_stack.get_top(4)
-        left = self.attribute_stack.get_top(4)
         B = self.attribute_stack.get_top(2)
+        if left["type"]!="boolean":
+            raise Exception("赋值语句类型错误")
         if left["offset"] == None:
             result = str(left["addr"])
         else:
@@ -251,15 +272,11 @@ class semantic_action():
         left_attribute = {}
         t = self.table_stack.get_top(1)
         id_addr = self.attribute_stack.get_top(1)["addr"]
-        row_num = self.attribute_stack.get_top(1)["row_num"]
         item = t.search(id_addr)
         if item==None:
-            print("Error at Line ["+str(row_num)+"]：["+id_addr+"未定义]")
-            raise Exception() 
+            raise Exception(id_addr+"未定义") 
         if item.type=="fuction" or item.type == "array":
-            print("Error at Line ["+str(row_num)+"]：["+id_addr+"类型不匹配]")
-            raise Exception()
-        left_attribute["row_num"] = row_num
+            raise Exception(id_addr+"类型不匹配")
         left_attribute["type"] = item.type
         left_attribute["addr"] = id_addr
         left_attribute["offset"] = None
@@ -285,11 +302,8 @@ class semantic_action():
         l_array = self.attribute_stack.get_top(1)["array"]
         l_addr = self.attribute_stack.get_top(1)["addr"]
         L = self.attribute_stack.get_top(1)
-        row_num = L["row_num"]
         if L["type"]=="array":
-            print("Error at Line ["+str(row_num)+"]：["+"数组索引过少]")
-            raise Exception()
-        left_attribute["row_num"] = row_num
+            raise Exception("数组索引过少")
         left_attribute["type"] = L["type"]
         self.gencode("=",str(l_array.address),None,left_attribute["addr"])
         self.gencode("*",l_addr,self.width(l_array.type),left_attribute["offset"])
@@ -304,20 +318,16 @@ class semantic_action():
     def semantic_action_28(self):
         left_attribute = {}
         id_name = self.attribute_stack.get_top(1)["addr"]
-        row_num = self.attribute_stack.get_top(1)["row_num"]
         Left1 = self.attribute_stack.get_top(3)
         t = Left1["table"]
         item = t.search(id_name)
         if item == None:
-            print("Error at Line ["+str(row_num)+"]：["+id_name+"未定义]")
-            raise Exception()
+            raise Exception(id_name+"未定义")
         if Left1["type"] != "struct":
-            print("Error at Line ["+str(Left1["row_num"])+"]：["+id_name+"不能对非结构体进行.操作]")
-            raise Exception()
+            raise Exception("不能对非结构体进行.操作")
         if item.type == "struct":
             left_attribute["table"] = item.redundant_point
         left_attribute["type"] = item.type
-        left_attribute["row_num"] = row_num
         left_attribute["addr"] = id_name +"."+self.attribute_stack.get_top(3)["addr"]
         left_attribute["offset"] = self.attribute_stack.get_top(3)["offset"]
         return left_attribute
@@ -329,18 +339,17 @@ class semantic_action():
         L_attribute = {}
         t = self.table_stack.get_top(1)
         id_name = self.attribute_stack.get_top(4)["addr"]
-        row_num = self.attribute_stack.get_top(4)["row_num"]
         item = t.search(id_name)
+        E = self.attribute_stack.get_top(2)
         if item == None:
-            print("Error at Line ["+str(row_num)+"]：["+id_name+"未定义]")
-            raise Exception()
+            raise Exception(id_name+"未定义")
         if item.type != "array":
-            print("Error at Line ["+str(row_num)+"]：["+id_name+"非数组变量不能有索引]")
-            raise Exception() 
+            raise Exception(id_name+"非数组变量不能有索引") 
+        if E["type"] != "int":
+            raise Exception("数组索引只能用整数")
         L_attribute["array"] = self.table_stack.get_top(1).search(id_name).redundant_point
         L_attribute["addr"] = self.attribute_stack.get_top(2)["addr"]
         L_attribute["ndim"] = 0
-        L_attribute["row_num"] = row_num
         if len(L_attribute["array"].limits) == 1:
             L_attribute["type"] = L_attribute["array"].type
         else:
@@ -365,10 +374,8 @@ class semantic_action():
         L_attribute["array"] = L1["array"]
         L_attribute["addr"] = t
         L_attribute["ndim"] = m
-        L_attribute["row_num"] = L1["row_num"]
         if L1["type"]!="array":
-            print("Error at Line ["+L1["row_num"]+"]：[数组索引过多]")
-            raise Exception()
+            raise Exception("数组索引过多")
         elif m==len(L1["array"].limits)-1:
             L_attribute["type"] = L1["array"].type
         else:
@@ -381,7 +388,14 @@ class semantic_action():
         E_attribute["addr"] = self.new_temp()
         E1 = self.attribute_stack.get_top(3)
         Y = self.attribute_stack.get_top(1)
-        self.gencode("+",E1["addr"],Y["addr"],E_attribute["addr"])
+        if Y["type"] not in self.legal_type:
+            raise Exception("算数类型不对")
+        if E1["type"] not in self.legal_type:
+            raise Exception("算数类型不对")
+        E_attribute["type"] = self.max_type(E1["type"],Y["type"])
+        a1 = self.widen(E1["addr"],E1["type"],E_attribute["type"])
+        a2 = self.widen(Y["addr"],Y["type"],E_attribute["type"])
+        self.gencode("+",a1,a2,E_attribute["addr"])
         return E_attribute
     #E::=E1 - Y
     #{E.addr:=newtemp;gencode(E.addr ':='E1.addr'-'Y.addr)}
@@ -390,13 +404,21 @@ class semantic_action():
         E_attribute["addr"] = self.new_temp()
         E1 = self.attribute_stack.get_top(3)
         Y = self.attribute_stack.get_top(1)
-        self.gencode("-",E1["addr"],Y["addr"],E_attribute["addr"])
+        if E1["type"] not in self.legal_type:
+            raise Exception("算数类型不对")
+        if Y["type"] not in self.legal_type:
+            raise Exception("算数类型不对")
+        E_attribute["type"] = self.max_type(E1["type"],Y["type"])
+        a1 = self.widen(E1["addr"],E1["type"],E_attribute["type"])
+        a2 = self.widen(Y["addr"],Y["type"],E_attribute["type"])
+        self.gencode("-",a1,a2,E_attribute["addr"])
         return E_attribute
     #E::=Y
     #{E.addr:=Y.addr}
     def semantic_action_33(self):
         E_attribute = {}
         E_attribute["addr"] = self.attribute_stack.get_top(1)["addr"]
+        E_attribute["type"] = self.attribute_stack.get_top(1)["type"]
         return E_attribute
     #Y::=Y1 * F
     #{Y.addr:=newtemp;gencode(Y.addr ':='Y1.addr'*'F.addr)}
@@ -405,7 +427,14 @@ class semantic_action():
         Y_attribute["addr"] = self.new_temp()
         Y1 = self.attribute_stack.get_top(3)
         F = self.attribute_stack.get_top(1)
-        self.gencode("*",Y1["addr"],F["addr"],Y_attribute["addr"])
+        if F["type"] not in self.legal_type:
+            raise Exception("算数类型不对")
+        if Y1["type"] not in self.legal_type:
+            raise Exception("算数类型不对")
+        Y_attribute["type"] = self.max_type(Y1["type"],F["type"])
+        a1 = self.widen(Y1["addr"],Y1["type"],Y_attribute["type"])
+        a2 = self.widen(F["addr"],F["type"],Y_attribute["type"])
+        self.gencode("*",a1,a2,Y_attribute["addr"])
         return Y_attribute
     #Y::=Y1 / F
     #{Y.addr:=newtemp;gencode(Y.addr ':='Y1.addr'/'F.addr)} 
@@ -414,25 +443,35 @@ class semantic_action():
         Y_attribute["addr"] = self.new_temp()
         Y1 = self.attribute_stack.get_top(3)
         F = self.attribute_stack.get_top(1)
-        self.gencode("/",Y1["addr"],F["addr"],Y_attribute["addr"])
+        if F["type"] not in self.legal_type:
+            raise Exception("算数类型不对")
+        if Y1["type"] not in self.legal_type:
+            raise Exception("算数类型不对")
+        Y_attribute["type"] = self.max_type(Y1["type"],F["type"])
+        a1 = self.widen(Y1["addr"],Y1["type"],Y_attribute["type"])
+        a2 = self.widen(F["addr"],F["type"],Y_attribute["type"])
+        self.gencode("/",a1,a2,Y_attribute["addr"])
         return Y_attribute
     #Y::=F
     #{Y.addr:=F.addr}
     def semantic_action_36(self):
         Y_attribute = {}
         Y_attribute["addr"] = self.attribute_stack.get_top(1)["addr"]
+        Y_attribute["type"] = self.attribute_stack.get_top(1)["type"]
         return Y_attribute
     #F::=( M )
     #{F.addr:=M.addr}
     def semantic_action_37(self):
         F_attribute = {}
         F_attribute["addr"] = self.attribute_stack.get_top(2)["addr"]
+        F_attribute["type"] = self.attribute_stack.get_top(2)["type"]
         return F_attribute
     #F::=M
     #F.addr:=M.addr
     def semantic_action_38(self):
         F_attribute = {}
         F_attribute["addr"] = self.attribute_stack.get_top(1)["addr"]
+        F_attribute["type"] = self.attribute_stack.get_top(1)["type"]
         return F_attribute
     #{if Left.offset=null then /*Left是简单id*/
     #M.addr:= Left.addr
@@ -446,13 +485,13 @@ class semantic_action():
         M_attribute = {}
         Left = self.attribute_stack.get_top(1)
         if Left["type"] not in {"char","int","float","boolean"}:
-            print("Error at Line ["+Left["row_num"]+"]：[类型错误]")
-            raise Exception()
+            raise Exception("类型错误")
         if Left["offset"] == None:
             M_attribute["addr"] = Left["addr"]
         else:
             M_attribute["addr"] = self.new_temp()
             self.gencode("=",Left["addr"] + "[" + Left["offset"] + "]",None,M_attribute["addr"])
+        M_attribute["type"] = Left["type"]
         return M_attribute
     #M::=CI
     #M.addr:=newtemp;
@@ -752,13 +791,23 @@ class semantic_action():
     #until queue为空;
 	#gencode('call', id.addr, n, -)}
     #S::=call id ( Elist ) ;
+    #要检查参数数目和类型
     def semantic_action_64(self):
         t = self.table_stack.get_top(1)
         id = self.attribute_stack.get_top(5)
+        Elist = self.attribute_stack.get_top(3)
+        item = t.search(id["addr"])
         n=0
-        if t.search(id["addr"])==None:
-            print("Error at Line ["+str(id["row_num"])+"]：["+id["addr"]+"未定义]")
-            raise Exception()
+        if item==None:
+            raise Exception(id["addr"]+"未定义")
+        table = item.redundant_point
+        if item.type!="fuction":
+            raise Exception("不能对非函数变量进行函数调用")
+        if table.para_num != len(Elist["type_array"]):
+            raise Exception("参数个数不正确")
+        for i in range(table.para_num):
+            if table.table[i].type != Elist["type_array"][i]:
+                raise Exception("第"+str(i+1)+"个参数类型不正确")
         while not self.param_queue.is_empty():
             p = self.param_queue.dequeue()
             self.gencode("param",None,None,p)
@@ -768,25 +817,31 @@ class semantic_action():
     #Elist::=Elist , E
     #{将E.addr添加到queue的队尾}
     def semantic_action_65(self):
+        Elist_attribute = {}
         E = self.attribute_stack.get_top(1)
+        Elist = self.attribute_stack.get_top(3)
         self.param_queue.enqueue(E["addr"])
-        return {}
+        Elist_attribute["type_array"] = Elist["type_array"] + [E["type"]]
+        return Elist_attribute
     #Elist::=E
     #初始化queue，然后将E.addr加入到queue的队尾。
+    #记录E的类型，用于对比实参和形参类型
     def semantic_action_66(self):
+        Elist_attribute = {}
         self.param_queue = Queue()
         E = self.attribute_stack.get_top(1)
         self.param_queue.enqueue(E["addr"])
-        return {}
+        Elist_attribute["type_array"] = [E["type"]]
+        return Elist_attribute
     #List::=id
     def semantic_action_68(self):
         self.param_queue = Queue()
         id = self.attribute_stack.get_top(1)
         t = self.table_stack.get_top(1)
         if t.search[id["addr"]]==None:
-            print("Error at Line ["+str(id["row_num"])+"]：["+id["addr"]+"未定义]")
-            raise Exception() 
+            raise Exception(id["addr"]+"未定义") 
         self.param_queue.enqueue(id["addr"])
+
         return {}
     #List::=List , id
     ##{将id.addr添加到queue的队尾}
@@ -794,8 +849,7 @@ class semantic_action():
         id = self.attribute_stack.get_top(1)
         t = self.table_stack.get_top(1)
         if t.search[id["addr"]]==None:
-            print("Error at Line ["+str(id["row_num"])+"]：["+id["addr"]+"未定义]")
-            raise Exception() 
+            raise Exception(id["addr"]+"未定义") 
         self.param_queue.enqueue(id["addr"])
         return {}
     #{n:=0;
@@ -830,5 +884,73 @@ class semantic_action():
             n = n+1
         self.gencode("call","SYSIN",n,None)
         return {}
+    def max_type(self,type1,type2):
+        legal_type = self.legal_type
+        if type1 not in legal_type or type2 not in legal_type:
+            raise Exception("算数运算类型不正确")
+        type1_prioity = legal_type[type1]
+        type2_prioity = legal_type[type2]
+        if type1_prioity>type2_prioity:
+            return type1
+        else:
+            return type2
+    def widen(self,addr,init_type,wide_type):
+        init_type_prioity = self.legal_type[init_type]
+        wide_type_prioity = self.legal_type[wide_type]
+        if init_type_prioity==wide_type_prioity:
+            return addr
+        elif init_type_prioity<wide_type:
+            temp = self.new_temp()
+            self.gencode(init_type+"to"+wide_type,addr,None,temp)
+            return temp
+
+
 if __name__ == "__main__":
     print("semantic_analysis")
+"""S::=Left = E ; 检查Left类型不能是结构体,赋值语句的类型转换。要么Left和E都是布尔值，要么两个都是数值
+S::=Left = B ; 检查Left的类型为boolean常量
+Left::=id id只能是结构体类型或者一般数据类型，其他的报错。向上传递类型信息，如果是结构体，那么要传递符号表信息
+Left::=L 对于数组索引是否过少,向上传递类型信息
+Left::=Left . id Left的类型只能是结构体，其他的报错。id的类型是结构体或者是一般类型否则报错，如果是结构体要传递符号表信息
+L::=id [ E ] id的类型只能是数组，索引必须是整数
+L::=L [ E ] 查看数组的索引是否达到个数，索引是否过多，索引必须是整数
+E::=E + Y E和Y必须是非bool类型
+E::=E - Y E和Y必须是非bool类型
+E::=Y 向上传递类型信息。E的类型可能为所有基本类型
+Y::=Y * F Y和F都必须是非bool的基本类型才能计算
+Y::=Y / F Y和F都必须是非bool的基本类型才能计算
+Y::=F 传递类型信息 Y是基本类型
+F::=( M ) 传递类型信息 F是基本类型
+F::=M 传递类型  Left之能是struct或者基本类型
+M::=Left Left只能是一般类型，不能是结构体。同时，Left一定不是数组类型，因为Left::=L的时候已经检查了
+M::=CI M的类型是基本类型
+M::=CF
+M::=CC
+
+S::= if B { M3 W' }
+S::= if B { M3 W' } M4 else { M3 W' }
+S::= while M3 B do { M3 W' }
+M3::=ε
+M4::=ε
+B::=B || M3 G
+B::=G
+G::=G && M3 H
+G::=H
+H::=! H
+H::=I
+I::=E R E
+I::=( B )
+I::=true
+I::=false
+R::=<
+R::=<=
+R::===
+R::=!=
+R::=>
+R::=>=	
+
+S::=call id ( Elist ) ; 判断参数个数和参数类型是否正确
+Elist::=Elist , E 完成参数属性传递
+Elist::=E 完成参数属性传递
+List::=List , id
+List::=id"""

@@ -19,6 +19,7 @@ class symbol_table():
     def __init__(self,table):
         self.table = []
         self.offset = 0
+        self.param_num = 0
         self.father_table = table
     def add(self, symbol_item_instance):
         self.table.append(symbol_item_instance)#名字，属性，offset

@@ -238,15 +238,15 @@ class grammar_parser():
                     self.state_stack.push(command)
                     self.symbol_stack.push(char)
                     if char=="id":
-                        self.attribute_stack.push({"addr":self.init_token_list[index],"row_num":self.type_code[index][2]})
+                        self.attribute_stack.push({"addr":self.init_token_list[index]})
                     elif char in {"<","<=","!=","==",">",">="}:
-                        self.attribute_stack.push({"op":char,"row_num":self.type_code[index][2]})
+                        self.attribute_stack.push({"op":char})
                     elif char == "CI":
-                        self.attribute_stack.push({"value":int(self.init_token_list[index]),"row_num":self.type_code[index][2]})
+                        self.attribute_stack.push({"value":int(self.init_token_list[index])})
                     elif char == "CF":
-                        self.attribute_stack.push({"value":float(self.init_token_list[index]),"row_num":self.type_code[index][2]})
+                        self.attribute_stack.push({"value":float(self.init_token_list[index])})
                     elif char == "CC":
-                        self.attribute_stack.push({"value":self.init_token_list[index],"row_num":self.type_code[index][2]})
+                        self.attribute_stack.push({"value":self.init_token_list[index]})
                     else:
                         self.attribute_stack.push({"row_num":self.type_code[index][2]})
                     index+=1
@@ -277,6 +277,7 @@ class grammar_parser():
                 #print(self.attribute_stack.array)
             except Exception as e:
                 self.no_error_flag=False
+                #语义分析是行数减一
                 print("Error at Line ["+str(self.type_code[index][2])+"]：[the error is near \""+self.init_token_list[index]+"\"]")
                 while True:
                     top_state = self.state_stack.get_top()
