@@ -1,4 +1,6 @@
 from collections import namedtuple
+class MyException(Exception):
+    pass
 class symbol_item():
     def __init__(self,name,my_type,offset,redundant_point):
         self.name = name
@@ -21,6 +23,7 @@ class symbol_table():
         self.offset = 0
         self.param_num = 0
         self.father_table = table
+        self.return_type = None
     def add(self, symbol_item_instance):
         self.table.append(symbol_item_instance)#名字，属性，offset
         return len(self.table)-1

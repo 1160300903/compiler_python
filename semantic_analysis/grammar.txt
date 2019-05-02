@@ -103,7 +103,7 @@ R::=!=
 R::=>
 R::=>=	
 
-S::=call id ( Elist ) ;
+S::=Left = call id ( Elist ) ;
 Elist::=Elist , E
 Elist::=E
 List::=List , id

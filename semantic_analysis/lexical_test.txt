@@ -1,1 +1,15 @@
-call func(a);
+int a;
+int[3][3] b;
+a = 1+2;
+if (a>2){a=1;}
+while (a>1) do{
+a=a-1;
+}
+def int func(int a){
+    print('1');
+    input(a);
+	return 0;
+}
+int a;
+c =1;
+a = a+b;

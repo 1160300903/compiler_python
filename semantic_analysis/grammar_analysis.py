@@ -1,5 +1,5 @@
 from semantic_analysis import semantic_action
-from util import symbol_table,Expression,Item,Queue,Stack
+from util import symbol_table,Expression,Item,Queue,Stack,MyException
 class grammar_parser():
     def __init__(self,path):
         self.terminators = set()
@@ -251,9 +251,8 @@ class grammar_parser():
                         self.attribute_stack.push({"row_num":self.type_code[index][2]})
                     index+=1
                 elif command=="acc":#接受动作
-                    if self.no_error_flag:
-                        for i in range(len(self.semantic_action.code_list)):
-                            self.code_file.write(str(i)+":"+self.semantic_action.code_list[i].toString()+"\n")
+                    for i in range(len(self.semantic_action.code_list)):
+                        self.code_file.write(str(i)+":"+self.semantic_action.code_list[i].toString()+"\n")
                     break
                 else:#规约动作
                     e = self.expression[int(command[1:])]
@@ -275,17 +274,23 @@ class grammar_parser():
                             expression_file.write(e.leftside+"::="+"".join(e.rightside+("ε",))+"\n")
                 #print(self.symbol_stack.array)#打印符号栈
                 #print(self.attribute_stack.array)
-            except Exception as e:
-                self.no_error_flag=False
+            except (KeyError,MyException) as e:
                 #语义分析是行数减一
-                print("Error at Line ["+str(self.type_code[index][2])+"]：[the error is near \""+self.init_token_list[index]+"\"]")
+                if type(e) == KeyError:
+                    print("Error at Line ["+str(self.type_code[index][2])+"]：[the error is near \""+self.init_token_list[index]+"\"]")
+                elif type(e)==MyException:
+                    print("Error at Line ["+str(int(self.type_code[index][2])-1)+"]：["+str(e)+"]")
                 while True:
                     top_state = self.state_stack.get_top()
                     if "P" in self.goto[top_state]:
                         break
                     self.state_stack.pop(1)
-                    self.symbol_stack.pop(1)
+                    s = self.symbol_stack.pop(1)
                     self.attribute_stack.pop(1)
+                    if s == ["struct"] or s==["def"]:
+                        self.semantic_action.table_stack.get_top(1).set_offset(self.semantic_action.offset_stack.get_top(1))
+                        self.semantic_action.table_stack.pop(1)
+                        self.semantic_action.offset_stack.pop(1)
                 state = self.goto[top_state]["P"]#压入栈的状态
                 self.state_stack.push(state)
                 self.symbol_stack.push("P")
